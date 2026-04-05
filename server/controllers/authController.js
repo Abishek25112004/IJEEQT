@@ -6,20 +6,17 @@ const { validationResult } = require("express-validator");
 
 /**
  * POST /api/auth/register
- * Creates Firebase Auth user and stores profile in Firestore
+ * Creates Firebase Auth user and stores profile in Firestore.
+ * Institution field is intentionally omitted.
+ * Roles stored as an array for multi-role support.
  */
 const register = async (req, res) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
   }
 
-  const { name, email, password, role = "author" } = req.body;
-
-  // Only allow certain roles during self-registration
-  const allowedRoles = ["author", "reviewer"];
-  const assignedRole = allowedRoles.includes(role) ? role : "author";
+  const { name, email, password } = req.body;
 
   try {
     // Create Firebase Auth account
@@ -29,23 +26,21 @@ const register = async (req, res) => {
       displayName: name,
     });
 
-    // Store extended profile in Firestore
+    // Store profile in Firestore — no institution field
     await db.collection("users").doc(userRecord.uid).set({
       name,
       email,
-      role: assignedRole,
-      createdAt: new Date().toISOString(),
-      institution: req.body.institution || "",
+      roles: ["author"], // array-based roles (default: author)
       bio: "",
+      createdAt: new Date().toISOString(),
     });
 
     res.status(201).json({
       message: "User registered successfully",
       uid: userRecord.uid,
-      role: assignedRole,
+      roles: ["author"],
     });
   } catch (error) {
-    // Firebase Auth error codes
     if (error.code === "auth/email-already-exists") {
       return res.status(409).json({ error: "Email already registered" });
     }
@@ -69,20 +64,18 @@ const getProfile = async (req, res) => {
 
 /**
  * PUT /api/auth/profile
- * Updates the logged-in user's profile
+ * Updates the logged-in user's profile (no institution field)
  */
 const updateProfile = async (req, res) => {
-  const { name, institution, bio } = req.body;
+  const { name, bio } = req.body;
 
   const updates = {};
   if (name) updates.name = name;
-  if (institution !== undefined) updates.institution = institution;
   if (bio !== undefined) updates.bio = bio;
   updates.updatedAt = new Date().toISOString();
 
   await db.collection("users").doc(req.user.uid).update(updates);
 
-  // Also update Firebase Auth display name if changed
   if (name) {
     await auth.updateUser(req.user.uid, { displayName: name });
   }

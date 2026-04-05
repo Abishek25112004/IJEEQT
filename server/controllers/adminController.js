@@ -1,7 +1,10 @@
 // controllers/adminController.js
 // Admin-only operations: user management, statistics
+// Supports multi-role system (roles[] array) with backward compatibility
 
 const { db, auth } = require("../config/firebase");
+
+const ALL_VALID_ROLES = ["admin", "editor", "manager", "reviewer", "author"];
 
 /**
  * GET /api/admin/users
@@ -9,21 +12,39 @@ const { db, auth } = require("../config/firebase");
  */
 const getAllUsers = async (req, res) => {
   const snapshot = await db.collection("users").orderBy("createdAt", "desc").get();
-  const users = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
+  const users = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      ...data,
+      // Normalize: if old single-role format, convert for display
+      roles: Array.isArray(data.roles)
+        ? data.roles
+        : [data.role || "author"],
+    };
+  });
   res.json({ users, total: users.length });
 };
 
 /**
  * PATCH /api/admin/users/:uid/role
- * Change a user's role
+ * Assign multiple roles to a user.
+ * Body: { roles: ["author", "reviewer"] }
+ * Also stores rich roleUpdatedBy object with admin's name, email, and role.
  */
 const updateUserRole = async (req, res) => {
   const { uid } = req.params;
-  const { role } = req.body;
+  const { roles } = req.body;
 
-  const validRoles = ["admin", "editor", "reviewer", "author"];
-  if (!validRoles.includes(role)) {
-    return res.status(400).json({ error: `Role must be: ${validRoles.join(", ")}` });
+  if (!roles || !Array.isArray(roles) || roles.length === 0) {
+    return res.status(400).json({ error: "roles must be a non-empty array" });
+  }
+
+  const invalidRoles = roles.filter((r) => !ALL_VALID_ROLES.includes(r));
+  if (invalidRoles.length > 0) {
+    return res.status(400).json({
+      error: `Invalid role(s): ${invalidRoles.join(", ")}. Valid roles: ${ALL_VALID_ROLES.join(", ")}`,
+    });
   }
 
   // Prevent changing own role
@@ -31,13 +52,28 @@ const updateUserRole = async (req, res) => {
     return res.status(400).json({ error: "Cannot change your own role" });
   }
 
+  // Fetch admin's own profile for rich roleUpdatedBy
+  const adminDoc = await db.collection("users").doc(req.user.uid).get();
+  const adminData = adminDoc.exists ? adminDoc.data() : {};
+
+  const roleUpdatedBy = {
+    uid: req.user.uid,
+    name: adminData.name || req.user.name || "Unknown Admin",
+    email: adminData.email || req.user.email || "",
+    roles: Array.isArray(adminData.roles)
+      ? adminData.roles
+      : [adminData.role || "admin"],
+  };
+
   await db.collection("users").doc(uid).update({
-    role,
+    roles,
+    // Keep legacy role field as primary role for backward compat
+    role: roles[0],
     roleUpdatedAt: new Date().toISOString(),
-    roleUpdatedBy: req.user.uid,
+    roleUpdatedBy,
   });
 
-  res.json({ message: `User role updated to: ${role}` });
+  res.json({ message: `User roles updated to: ${roles.join(", ")}` });
 };
 
 /**
@@ -51,7 +87,6 @@ const deleteUser = async (req, res) => {
     return res.status(400).json({ error: "Cannot delete your own account" });
   }
 
-  // Delete from Firebase Auth and Firestore
   await auth.deleteUser(uid);
   await db.collection("users").doc(uid).delete();
 
@@ -60,10 +95,9 @@ const deleteUser = async (req, res) => {
 
 /**
  * GET /api/admin/stats
- * Dashboard statistics
+ * Dashboard statistics — handles both old role and new roles[] format
  */
 const getDashboardStats = async (req, res) => {
-  // Run all queries in parallel for performance
   const [papersSnap, usersSnap, reviewsSnap] = await Promise.all([
     db.collection("papers").get(),
     db.collection("users").get(),
@@ -71,51 +105,55 @@ const getDashboardStats = async (req, res) => {
   ]);
 
   const papers = papersSnap.docs.map((d) => d.data());
-
-  // Count papers by status
   const statusCounts = papers.reduce((acc, p) => {
     acc[p.status] = (acc[p.status] || 0) + 1;
     return acc;
   }, {});
 
-  // Count users by role
   const users = usersSnap.docs.map((d) => d.data());
   const roleCounts = users.reduce((acc, u) => {
-    acc[u.role] = (acc[u.role] || 0) + 1;
+    // Handle both roles[] array and legacy role string
+    const userRoles = Array.isArray(u.roles) ? u.roles : [u.role || "author"];
+    userRoles.forEach((role) => {
+      acc[role] = (acc[role] || 0) + 1;
+    });
     return acc;
   }, {});
 
   res.json({
-    papers: {
-      total: papers.length,
-      byStatus: statusCounts,
-    },
-    users: {
-      total: users.length,
-      byRole: roleCounts,
-    },
-    reviews: {
-      total: reviewsSnap.size,
-    },
+    papers: { total: papers.length, byStatus: statusCounts },
+    users: { total: users.length, byRole: roleCounts },
+    reviews: { total: reviewsSnap.size },
   });
 };
 
 /**
  * GET /api/admin/reviewers
- * Get all users with reviewer role (for assignment dropdown)
+ * Get all users with reviewer/editor/admin/manager role (for assignment dropdown)
+ * Handles both old role and new roles[] array format
  */
 const getReviewers = async (req, res) => {
-  const snapshot = await db.collection("users")
-    .where("role", "in", ["reviewer", "editor", "admin"])
-    .get();
+  // Fetch all users and filter in code to support both role formats
+  const snapshot = await db.collection("users").get();
 
-  const reviewers = snapshot.docs.map((doc) => ({
-    uid: doc.id,
-    name: doc.data().name,
-    email: doc.data().email,
-    institution: doc.data().institution,
-    role: doc.data().role,
-  }));
+  const reviewerRoles = ["reviewer", "editor", "admin", "manager"];
+
+  const reviewers = snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      const userRoles = Array.isArray(data.roles)
+        ? data.roles
+        : [data.role || "author"];
+      return {
+        uid: doc.id,
+        name: data.name,
+        email: data.email,
+        roles: userRoles,
+        // Legacy compatibility
+        role: userRoles[0],
+      };
+    })
+    .filter((u) => u.roles.some((r) => reviewerRoles.includes(r)));
 
   res.json({ reviewers });
 };

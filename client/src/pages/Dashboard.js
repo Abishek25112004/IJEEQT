@@ -1,9 +1,26 @@
 // src/pages/Dashboard.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { papersAPI, paymentsAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { PageHero, PaperCard, Spinner, EmptyState, StatusBadge, Card } from "../components/common";
+
+// ─── Search Bar ───────────────────────────────────────────────────────────────
+const SearchBar = ({ value, onChange, placeholder }) => (
+  <div className="relative mb-4">
+    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+    />
+    {value && (
+      <button onClick={() => onChange("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+    )}
+  </div>
+);
 
 const Dashboard = () => {
   const { profile } = useAuth();
@@ -11,6 +28,7 @@ const Dashboard = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("papers");
+  const [paperSearch, setPaperSearch] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -24,16 +42,26 @@ const Dashboard = () => {
     return acc;
   }, {});
 
+  // Client-side search for papers (partial match)
+  const filteredPapers = useMemo(() => {
+    if (!paperSearch.trim()) return papers;
+    const q = paperSearch.toLowerCase();
+    return papers.filter(
+      (p) =>
+        p.title?.toLowerCase().includes(q) ||
+        p.status?.toLowerCase().includes(q) ||
+        p.keywords?.some((k) => k.toLowerCase().includes(q)) ||
+        p.abstract?.toLowerCase().includes(q)
+    );
+  }, [papers, paperSearch]);
+
   const handlePayment = async (paper) => {
     try {
       const order = await paymentsAPI.createOrder({ paperId: paper.id, amount: 5000 });
-
-      // Load Razorpay script dynamically
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
       document.body.appendChild(script);
-
       script.onload = () => {
         const options = {
           key: order.keyId,
@@ -63,6 +91,11 @@ const Dashboard = () => {
     }
   };
 
+  // Show admin panel link for users with elevated roles
+  const showAdminLink =
+    profile?.roles?.some((r) => ["admin", "editor", "manager"].includes(r)) ||
+    ["admin", "editor", "manager"].includes(profile?.role);
+
   return (
     <div>
       <PageHero
@@ -89,17 +122,11 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-3 mb-8">
-          <Link
-            to="/submit-paper"
-            className="bg-blue-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-800 transition font-medium"
-          >
+          <Link to="/submit-paper" className="bg-blue-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-800 transition font-medium">
             + Submit New Paper
           </Link>
-          {["admin", "editor"].includes(profile?.role) && (
-            <Link
-              to="/admin"
-              className="bg-gray-800 text-white text-sm px-4 py-2 rounded-lg hover:bg-gray-900 transition font-medium"
-            >
+          {showAdminLink && (
+            <Link to="/admin" className="bg-gray-800 text-white text-sm px-4 py-2 rounded-lg hover:bg-gray-900 transition font-medium">
               Admin Panel
             </Link>
           )}
@@ -109,15 +136,10 @@ const Dashboard = () => {
         <div className="border-b border-gray-200 mb-6">
           <div className="flex gap-6">
             {["papers", "payments"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+              <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`pb-3 text-sm font-medium capitalize border-b-2 transition-colors ${
-                  activeTab === tab
-                    ? "border-blue-600 text-blue-700"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
+                  activeTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}>
                 {tab} ({tab === "papers" ? papers.length : payments.length})
               </button>
             ))}
@@ -127,38 +149,39 @@ const Dashboard = () => {
         {loading ? (
           <Spinner center />
         ) : activeTab === "papers" ? (
-          papers.length > 0 ? (
-            <div className="space-y-4">
-              {papers.map((p) => (
-                <div key={p.id} className="relative">
-                  <PaperCard paper={p} showStatus />
-                  {p.status === "accepted" && p.paymentStatus !== "paid" && (
-                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
-                      <p className="text-sm text-yellow-800">
-                        ⚠️ Paper accepted! Pay APC (₹5,000) to proceed to publication.
-                      </p>
-                      <button
-                        onClick={() => handlePayment(p)}
-                        className="bg-yellow-500 text-white text-xs px-3 py-1.5 rounded font-medium hover:bg-yellow-600"
-                      >
-                        Pay Now
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="No submissions yet"
-              message="Start by submitting your first manuscript."
-              action={
-                <Link to="/submit-paper" className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700">
-                  Submit Paper
-                </Link>
-              }
+          <>
+            <SearchBar
+              value={paperSearch}
+              onChange={setPaperSearch}
+              placeholder="Search by title, status, or keyword…"
             />
-          )
+            {paperSearch && (
+              <p className="text-xs text-gray-400 mb-3">{filteredPapers.length} of {papers.length} papers</p>
+            )}
+            {filteredPapers.length > 0 ? (
+              <div className="space-y-4">
+                {filteredPapers.map((p) => (
+                  <div key={p.id} className="relative">
+                    <PaperCard paper={p} showStatus />
+                    {p.status === "accepted" && p.paymentStatus !== "paid" && (
+                      <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
+                        <p className="text-sm text-yellow-800">⚠️ Paper accepted! Pay APC (₹5,000) to proceed to publication.</p>
+                        <button onClick={() => handlePayment(p)} className="bg-yellow-500 text-white text-xs px-3 py-1.5 rounded font-medium hover:bg-yellow-600">Pay Now</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title={paperSearch ? "No matching papers" : "No submissions yet"}
+                message={paperSearch ? `No papers match "${paperSearch}"` : "Start by submitting your first manuscript."}
+                action={!paperSearch && (
+                  <Link to="/submit-paper" className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700">Submit Paper</Link>
+                )}
+              />
+            )}
+          </>
         ) : (
           payments.length > 0 ? (
             <div className="space-y-3">

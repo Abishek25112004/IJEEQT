@@ -7,18 +7,36 @@ const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { verifyToken } = require("../middleware/auth");
 const { asyncHandler } = require("../middleware/errorHandler");
 
-// Validation rules for registration
+// ─── Strong Password Validation Rules ────────────────────────────────────────
 const registerValidation = [
-  body("name").trim().notEmpty().withMessage("Name is required"),
-  body("email").isEmail().normalizeEmail().withMessage("Valid email is required"),
-  body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+  body("name")
+    .trim()
+    .notEmpty()
+    .withMessage("Full name is required"),
+
+  body("email")
+    .isEmail()
+    .normalizeEmail()
+    .withMessage("Valid email address is required"),
+
+  body("password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain at least one uppercase letter")
+    .matches(/[a-z]/)
+    .withMessage("Password must contain at least one lowercase letter")
+    .matches(/[0-9]/)
+    .withMessage("Password must contain at least one number")
+    .matches(/[^A-Za-z0-9]/)
+    .withMessage("Password must contain at least one special character"),
 ];
 
-// OTP routes (public)
+// ─── OTP Routes (public) ─────────────────────────────────────────────────────
 router.post("/send-otp", asyncHandler(sendOtp));
 router.post("/verify-otp", asyncHandler(verifyOtp));
 
-// Auth routes
+// ─── Auth Routes ─────────────────────────────────────────────────────────────
 router.post("/register", registerValidation, asyncHandler(register));
 router.get("/profile", verifyToken, asyncHandler(getProfile));
 router.put("/profile", verifyToken, asyncHandler(updateProfile));

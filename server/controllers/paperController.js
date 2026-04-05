@@ -107,12 +107,13 @@ const getAllPapers = async (req, res) => {
  * Public endpoint — returns all published papers
  */
 const getPublishedPapers = async (req, res) => {
-  const { volume, issue } = req.query;
+  const { volume, issue, year } = req.query;
 
   let query = db.collection("papers").where("status", "==", "published").orderBy("updatedAt", "desc");
 
   if (volume) query = query.where("volume", "==", Number(volume));
   if (issue) query = query.where("issue", "==", Number(issue));
+  if (year) query = query.where("year", "==", Number(year));
 
   const snapshot = await query.get();
   const papers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -151,7 +152,7 @@ const getPaperById = async (req, res) => {
  */
 const updatePaperStatus = async (req, res) => {
   const { id } = req.params;
-  const { status, volume, issue, doi, comments } = req.body;
+  const { status, volume, issue, doi, comments, year } = req.body;
 
   const validStatuses = ["submitted", "under_review", "revision_required", "accepted", "rejected", "published"];
   if (!validStatuses.includes(status)) {
@@ -168,6 +169,7 @@ const updatePaperStatus = async (req, res) => {
   if (issue) updates.issue = Number(issue);
   if (doi) updates.doi = doi;
   if (comments) updates.editorComments = comments;
+  if (year) updates.year = Number(year);
 
   await db.collection("papers").doc(id).update(updates);
 

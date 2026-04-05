@@ -1,12 +1,12 @@
 // middleware/auth.js
-// Verifies Firebase ID tokens sent from the client
-// Also supports role-based access control
+// Verifies Firebase ID tokens and supports multi-role (roles[]) access control
+// Backward compatible with old single "role" string format
 
 const { auth, db } = require("../config/firebase");
 
 /**
  * Middleware: Verify Firebase Auth token
- * Attaches decoded user to req.user
+ * Attaches decoded user + Firestore roles to req.user
  */
 const verifyToken = async (req, res, next) => {
   try {
@@ -17,18 +17,27 @@ const verifyToken = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-
-    // Verify the Firebase ID token
     const decodedToken = await auth.verifyIdToken(token);
     req.user = decodedToken;
 
-    // Fetch the user's role from Firestore
+    // Fetch the user's roles from Firestore
     const userDoc = await db.collection("users").doc(decodedToken.uid).get();
     if (userDoc.exists) {
-      req.user.role = userDoc.data().role || "author";
-      req.user.name = userDoc.data().name;
+      const data = userDoc.data();
+      req.user.name = data.name;
+      req.user.email = data.email;
+
+      // Support both new roles[] array and legacy role string
+      if (Array.isArray(data.roles) && data.roles.length > 0) {
+        req.user.roles = data.roles;
+        req.user.role = data.roles[0]; // primary role for compat
+      } else {
+        req.user.role = data.role || "author";
+        req.user.roles = [req.user.role];
+      }
     } else {
       req.user.role = "author";
+      req.user.roles = ["author"];
     }
 
     next();
@@ -40,7 +49,8 @@ const verifyToken = async (req, res, next) => {
 
 /**
  * Middleware factory: Restrict to specific roles
- * Usage: requireRole("admin") or requireRole(["admin", "editor"])
+ * Checks if the user has ANY of the required roles.
+ * Usage: requireRole("admin") or requireRole(["admin", "editor", "manager"])
  */
 const requireRole = (roles) => {
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
@@ -50,7 +60,11 @@ const requireRole = (roles) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    // Check against roles array
+    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.role || "author"];
+    const hasAccess = userRoles.some((r) => allowedRoles.includes(r));
+
+    if (!hasAccess) {
       return res.status(403).json({
         error: `Access denied. Required role: ${allowedRoles.join(" or ")}`,
       });

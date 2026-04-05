@@ -98,10 +98,7 @@ export const PaperCard = ({ paper, showStatus = false }) => (
         <h3 className="font-semibold text-gray-900 text-sm leading-snug hover:text-blue-700 transition-colors">
           {paper.title}
         </h3>
-        <p className="text-xs text-gray-500 mt-1">
-          {paper.authorName}
-          {paper.institution && ` — ${paper.institution}`}
-        </p>
+        <p className="text-xs text-gray-500 mt-1">{paper.authorName}</p>
         {paper.keywords?.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {paper.keywords.slice(0, 5).map((kw, i) => (
@@ -160,10 +157,13 @@ export const ProtectedRoute = ({ children, requiredRole }) => {
   if (!user) return <Navigate to="/login" replace />;
 
   if (requiredRole) {
-    const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    if (!roles.includes(profile?.role)) {
-      return <Navigate to="/" replace />;
-    }
+    const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    // Support both new roles[] array and legacy role string
+    const userRoles = Array.isArray(profile?.roles) && profile.roles.length > 0
+      ? profile.roles
+      : [profile?.role || "author"];
+    const hasAccess = userRoles.some((r) => allowed.includes(r));
+    if (!hasAccess) return <Navigate to="/" replace />;
   }
 
   return children;
