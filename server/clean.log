@@ -1,0 +1,231 @@
+﻿Γ£à Firebase Admin initialized
+≡ƒÜÇ Server running on http://localhost:5000
+≡ƒôï Environment: development
+GET /api/papers/published
+node : [ERROR] GET 
+/api/papers/published: 9 
+FAILED_PRECONDITION: The 
+query requires an index. 
+You can create it here: ht
+tps://console.firebase.goo
+gle.com/v1/r/project/ijeeq
+t-d0100/firestore/indexes?
+create_composite=Cktwcm9qZ
+WN0cy9pamVlcXQtZDAxMDAvZGF
+0YWJhc2VzLyhkZWZhdWx0KS9jb
+2xsZWN0aW9uR3JvdXBzL3BhcGV
+ycy9pbmRleGVzL18QARoKCgZzd
+GF0dXMQARoNCgl1cGRhdGVkQXQ
+QAhoMCghfX25hbWVfXxAC
+At line:1 char:42
++ ... kkill /F /IM 
+node.exe; Start-Sleep 1; 
+node index.js > 
+server.log 2>&1
++                         
+                  ~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified    : 
+([ERROR] GET /ap.    
+..ghfX25hbWVfXxAC:S    
+tring) [], RemoteEx    
+ception
+    + FullyQualifiedErr   
+ orId : NativeComman    
+dError
+ 
+TypeError: 
+err.code?.startsWith is 
+not a function
+    at errorHandler (S:\jo
+urnal-app\server\middlewar
+e\errorHandler.js:16:17)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:71:5)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)
+    at next (S:\journal-ap
+p\server\node_modules\expr
+ess\lib\router\index.js:28
+0:10)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:67:12)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)
+GET /api/papers/published
+[ERROR] GET 
+/api/papers/published: 9 
+FAILED_PRECONDITION: The 
+query requires an index. 
+You can create it here: ht
+tps://console.firebase.goo
+gle.com/v1/r/project/ijeeq
+t-d0100/firestore/indexes?
+create_composite=Cktwcm9qZ
+WN0cy9pamVlcXQtZDAxMDAvZGF
+0YWJhc2VzLyhkZWZhdWx0KS9jb
+2xsZWN0aW9uR3JvdXBzL3BhcGV
+ycy9pbmRleGVzL18QARoKCgZzd
+GF0dXMQARoNCgl1cGRhdGVkQXQ
+QAhoMCghfX25hbWVfXxAC
+TypeError: 
+err.code?.startsWith is 
+not a function
+    at errorHandler (S:\jo
+urnal-app\server\middlewar
+e\errorHandler.js:16:17)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:71:5)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)
+    at next (S:\journal-ap
+p\server\node_modules\expr
+ess\lib\router\index.js:28
+0:10)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:67:12)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)
+POST /api/papers/submit
+[ERROR] POST 
+/api/papers/submit: The 
+specified bucket does not 
+exist.
+TypeError: 
+err.code?.startsWith is 
+not a function
+    at errorHandler (S:\jo
+urnal-app\server\middlewar
+e\errorHandler.js:16:17)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:71:5)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)
+    at next (S:\journal-ap
+p\server\node_modules\expr
+ess\lib\router\index.js:28
+0:10)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:67:12)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)
+POST /api/papers/submit
+[ERROR] POST 
+/api/papers/submit: The 
+specified bucket does not 
+exist.
+TypeError: 
+err.code?.startsWith is 
+not a function
+    at errorHandler (S:\jo
+urnal-app\server\middlewar
+e\errorHandler.js:16:17)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:71:5)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)
+    at next (S:\journal-ap
+p\server\node_modules\expr
+ess\lib\router\index.js:28
+0:10)
+    at Layer.handle_error 
+(S:\journal-app\server\nod
+e_modules\express\lib\rout
+er\layer.js:67:12)
+    at trim_prefix (S:\jou
+rnal-app\server\node_modul
+es\express\lib\router\inde
+x.js:326:13)
+    at S:\journal-app\serv
+er\node_modules\express\li
+b\router\index.js:286:9
+    at 
+Function.process_params (S
+:\journal-app\server\node_
+modules\express\lib\router
+\index.js:346:12)

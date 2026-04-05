@@ -33,8 +33,12 @@ const submitPaper = async (req, res) => {
       },
     });
 
-    // Make the file publicly accessible
-    await fileRef.makePublic();
+    // Attempt to make the file publicly accessible (may fail if UBLA is enabled, which is fine)
+    try {
+      await fileRef.makePublic();
+    } catch (e) {
+      console.warn("Could not make file public:", e.message);
+    }
     fileUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
   }
 

@@ -130,7 +130,7 @@ const SubmitPaper = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Abstract <span className="text-red-500">*</span>
-                <span className="text-gray-400 font-normal ml-2">(150–300 words)</span>
+                <span className="text-gray-400 font-normal ml-2">(150–250 words)</span>
               </label>
               <textarea
                 name="abstract"
@@ -139,7 +139,7 @@ const SubmitPaper = () => {
                 rows={6}
                 placeholder="Write a structured abstract summarizing the research problem, methodology, results, and conclusions..."
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-justify focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Word count: {form.abstract.trim() ? form.abstract.trim().split(/\s+/).length : 0}

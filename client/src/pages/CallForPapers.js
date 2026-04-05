@@ -71,7 +71,7 @@ const CallForPapers = () => (
         <div className="text-sm text-gray-700 space-y-2">
           <p>• Papers must be submitted electronically via our online submission system.</p>
           <p>• All papers must be in IEEE format (PDF, max 10 MB).</p>
-          <p>• Abstract should be 150–300 words; full paper should be 4–8 pages.</p>
+          <p>• Abstract should be 150–250 words; full paper should be 4–8 pages.</p>
           <p>• All submissions will be plagiarism-checked (iThenticate).</p>
           <p>• Blind review: author details must not appear in the submitted manuscript.</p>
         </div>

@@ -13,7 +13,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Firebase errors
-  if (err.code?.startsWith("auth/")) {
+  if (typeof err.code === "string" && err.code.startsWith("auth/")) {
     return res.status(400).json({ error: err.message });
   }
 
