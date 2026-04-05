@@ -1,0 +1,88 @@
+// src/services/api.js
+// Centralized Axios instance — auto-attaches Firebase ID token to every request
+
+import axios from "axios";
+import { auth } from "./firebase";
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 30000,
+});
+
+// Request interceptor — attach Firebase ID token
+api.interceptors.request.use(
+  async (config) => {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor — normalize errors
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const message =
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      error.message ||
+      "An unexpected error occurred";
+    return Promise.reject(new Error(message));
+  }
+);
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+export const authAPI = {
+  register: (data) => api.post("/auth/register", data),
+  getProfile: () => api.get("/auth/profile"),
+  updateProfile: (data) => api.put("/auth/profile", data),
+  sendOtp: (email) => api.post("/auth/send-otp", { email }),
+  verifyOtp: (email, otp) => api.post("/auth/verify-otp", { email, otp }),
+};
+
+// ─── Papers ───────────────────────────────────────────────────────────────────
+export const papersAPI = {
+  submit: (formData) =>
+    api.post("/papers/submit", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  getAll: (params) => api.get("/papers", { params }),
+  getPublished: (params) => api.get("/papers/published", { params }),
+  getById: (id) => api.get(`/papers/${id}`),
+  updateStatus: (id, data) => api.patch(`/papers/${id}/status`, data),
+  assignReviewer: (id, reviewerId) =>
+    api.patch(`/papers/${id}/assign-reviewer`, { reviewerId }),
+  delete: (id) => api.delete(`/papers/${id}`),
+};
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+export const reviewsAPI = {
+  add: (data) => api.post("/reviews", data),
+  getForPaper: (paperId) => api.get(`/reviews/paper/${paperId}`),
+  toggleVisibility: (id, isVisible) =>
+    api.patch(`/reviews/${id}/visibility`, { isVisible }),
+};
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+export const adminAPI = {
+  getStats: () => api.get("/admin/stats"),
+  getUsers: () => api.get("/admin/users"),
+  getReviewers: () => api.get("/admin/reviewers"),
+  updateUserRole: (uid, role) => api.patch(`/admin/users/${uid}/role`, { role }),
+  deleteUser: (uid) => api.delete(`/admin/users/${uid}`),
+};
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+export const paymentsAPI = {
+  createOrder: (data) => api.post("/payments/create-order", data),
+  verify: (data) => api.post("/payments/verify", data),
+  getMyPayments: () => api.get("/payments/my-payments"),
+};
+
+export default api;

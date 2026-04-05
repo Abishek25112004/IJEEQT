@@ -1,0 +1,87 @@
+// src/pages/EditorialBoard.js
+import React from "react";
+import { PageHero, Card } from "../components/common";
+
+const boardMembers = {
+  "Editor-in-Chief": [
+    {
+      name: "Prof. Dr. Rajesh Kumar",
+      role: "Editor-in-Chief",
+      institution: "Indian Institute of Technology, Delhi",
+      country: "India",
+      specialization: "Artificial Intelligence, Machine Learning",
+    },
+  ],
+  "Associate Editors": [
+    {
+      name: "Dr. Sarah Johnson",
+      institution: "MIT, Cambridge",
+      country: "USA",
+      specialization: "Computer Vision, Deep Learning",
+    },
+    {
+      name: "Prof. Hiroshi Tanaka",
+      institution: "University of Tokyo",
+      country: "Japan",
+      specialization: "Robotics, Control Systems",
+    },
+    {
+      name: "Dr. Maria Garcia",
+      institution: "Technical University of Madrid",
+      country: "Spain",
+      specialization: "Renewable Energy Systems",
+    },
+  ],
+  "Editorial Board Members": [
+    { name: "Prof. David Chen", institution: "Stanford University", country: "USA", specialization: "Nanomaterials" },
+    { name: "Dr. Amara Diallo", institution: "University of Dakar", country: "Senegal", specialization: "Biomedical Engineering" },
+    { name: "Prof. Elena Petrova", institution: "Moscow State Technical University", country: "Russia", specialization: "Applied Mathematics" },
+    { name: "Dr. James Wilson", institution: "University of Cambridge", country: "UK", specialization: "Structural Engineering" },
+    { name: "Prof. Li Wei", institution: "Tsinghua University", country: "China", specialization: "Electronics & VLSI" },
+    { name: "Dr. Fatima Al-Hassan", institution: "King Abdullah University", country: "Saudi Arabia", specialization: "Chemical Engineering" },
+    { name: "Prof. Carlos Mendez", institution: "University of São Paulo", country: "Brazil", specialization: "Environmental Engineering" },
+    { name: "Dr. Ananya Sharma", institution: "IISc Bangalore", country: "India", specialization: "Computational Biology" },
+  ],
+};
+
+const MemberCard = ({ member }) => (
+  <Card className="p-4 hover:shadow-md transition-shadow">
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold text-sm flex items-center justify-center shrink-0">
+        {member.name.split(" ").pop()[0]}
+      </div>
+      <div className="min-w-0">
+        <p className="font-semibold text-gray-900 text-sm leading-snug">{member.name}</p>
+        <p className="text-gray-600 text-xs mt-0.5">{member.institution}</p>
+        <p className="text-gray-400 text-xs">{member.country}</p>
+        <p className="text-blue-600 text-xs mt-1 italic">{member.specialization}</p>
+      </div>
+    </div>
+  </Card>
+);
+
+const EditorialBoard = () => (
+  <div>
+    <PageHero
+      title="Editorial Board"
+      subtitle="Our distinguished panel of international experts ensures the quality and integrity of every publication."
+      breadcrumb="Home / Editorial Board"
+    />
+    <div className="max-w-6xl mx-auto px-4 py-12 space-y-10">
+      {Object.entries(boardMembers).map(([section, members]) => (
+        <div key={section}>
+          <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3 mb-5">
+            {section}
+          </h2>
+          <div className={`grid gap-4 ${section === "Editor-in-Chief" ? "grid-cols-1 max-w-md" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
+            {members.map((m) => (
+              <MemberCard key={m.name} member={m} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export default EditorialBoard;
