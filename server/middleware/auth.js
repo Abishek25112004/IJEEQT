@@ -1,12 +1,13 @@
 // middleware/auth.js
 // Verifies Firebase ID tokens and supports multi-role (roles[]) access control
-// Backward compatible with old single "role" string format
+// Migrated to use PostgreSQL via Prisma
 
-const { auth, db } = require("../config/firebase");
+const { auth } = require("../config/firebase");
+const prisma = require("../config/db");
 
 /**
  * Middleware: Verify Firebase Auth token
- * Attaches decoded user + Firestore roles to req.user
+ * Attaches decoded user + PostgreSQL roles to req.user
  */
 const verifyToken = async (req, res, next) => {
   try {
@@ -20,20 +21,21 @@ const verifyToken = async (req, res, next) => {
     const decodedToken = await auth.verifyIdToken(token);
     req.user = decodedToken;
 
-    // Fetch the user's roles from Firestore
-    const userDoc = await db.collection("users").doc(decodedToken.uid).get();
-    if (userDoc.exists) {
-      const data = userDoc.data();
-      req.user.name = data.name;
-      req.user.email = data.email;
+    // Fetch the user's roles from PostgreSQL
+    const userDoc = await prisma.user.findUnique({
+      where: { uid: decodedToken.uid }
+    });
 
-      // Support both new roles[] array and legacy role string
-      if (Array.isArray(data.roles) && data.roles.length > 0) {
-        req.user.roles = data.roles;
-        req.user.role = data.roles[0]; // primary role for compat
+    if (userDoc) {
+      req.user.name = userDoc.name;
+      req.user.email = userDoc.email;
+
+      if (Array.isArray(userDoc.roles) && userDoc.roles.length > 0) {
+        req.user.roles = userDoc.roles;
+        req.user.role = userDoc.roles[0]; // primary role for compat
       } else {
-        req.user.role = data.role || "author";
-        req.user.roles = [req.user.role];
+        req.user.role = "author";
+        req.user.roles = ["author"];
       }
     } else {
       req.user.role = "author";
