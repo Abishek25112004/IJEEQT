@@ -1,13 +1,31 @@
 // controllers/paperController.js
-// Handles paper submission, retrieval, status updates
+// Handles paper submission, retrieval, status updates with PostgreSQL (Prisma) and Cloudinary
 
-const { db, bucket } = require("../config/firebase");
+const prisma = require("../config/db");
+const cloudinary = require("../config/cloudinary");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 
+const uploadToCloudinary = (fileBuffer, fileName) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "raw", // Ideal for PDFs/documents
+        public_id: fileName,    // Sets the file name in Cloudinary
+        folder: "papers",
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    uploadStream.end(fileBuffer);
+  });
+};
+
 /**
  * POST /api/papers/submit
- * Submit a new paper with PDF upload to Firebase Storage
+ * Submit a new paper with document upload to Cloudinary
  */
 const submitPaper = async (req, res) => {
   const { title, abstract, keywords, authorName, authorEmail, institution, coAuthors } = req.body;
@@ -19,65 +37,63 @@ const submitPaper = async (req, res) => {
   let fileUrl = null;
   let fileName = null;
 
-  // Handle PDF upload if file is present
-  if (req.file) {
-    const fileId = uuidv4();
-    const ext = path.extname(req.file.originalname) || ".pdf";
-    fileName = `papers/${fileId}${ext}`;
+  try {
+    // Handle PDF upload if file is present via Cloudinary
+    if (req.file) {
+      const fileId = uuidv4();
+      const result = await uploadToCloudinary(req.file.buffer, fileId);
+      
+      fileUrl = result.secure_url;
+      fileName = result.public_id; // Keep public_id for future reference/deletion
+    }
 
-    const fileRef = bucket.file(fileName);
-    await fileRef.save(req.file.buffer, {
-      metadata: {
-        contentType: req.file.mimetype || "application/pdf",
-        metadata: { uploadedBy: req.user.uid },
-      },
+    // Parse keywords and co-authors
+    const keywordsArray = typeof keywords === "string"
+      ? keywords.split(",").map((k) => k.trim()).filter(Boolean)
+      : keywords;
+
+    const coAuthorsArray = coAuthors
+      ? typeof coAuthors === "string" ? JSON.parse(coAuthors) : coAuthors
+      : [];
+      
+    // Verify user exists in PostgreSQL to link relation correctly
+    const authorExists = await prisma.user.findUnique({
+      where: { uid: req.user.uid }
+    });
+    
+    // In case the user bypassed PostgreSQL insertion (e.g., from old Firebase data),
+    // we would handle the error or create the user implicitly. Assuming user exists:
+    if (!authorExists) {
+      return res.status(404).json({ error: "User profile not synced to PostgreSQL. Please contact admin."});
+    }
+
+    const paperData = {
+      title,
+      abstract,
+      keywords: keywordsArray,
+      author: { connect: { uid: req.user.uid } },
+      authorName: authorName || req.user.name || "",
+      authorEmail: authorEmail || req.user.email || "",
+      institution: institution || "",
+      coAuthors: coAuthorsArray,
+      fileUrl,
+      fileName,
+      status: "submitted",
+    };
+
+    const paper = await prisma.paper.create({
+      data: paperData
     });
 
-    // Attempt to make the file publicly accessible (may fail if UBLA is enabled, which is fine)
-    try {
-      await fileRef.makePublic();
-    } catch (e) {
-      console.warn("Could not make file public:", e.message);
-    }
-    fileUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    res.status(201).json({
+      message: "Paper submitted successfully",
+      paperId: paper.id,
+      status: paper.status,
+    });
+  } catch (error) {
+    console.error("Paper submission error:", error);
+    res.status(500).json({ error: "Internal server error during paper submission" });
   }
-
-  // Parse keywords and co-authors
-  const keywordsArray = typeof keywords === "string"
-    ? keywords.split(",").map((k) => k.trim()).filter(Boolean)
-    : keywords;
-
-  const coAuthorsArray = coAuthors
-    ? typeof coAuthors === "string" ? JSON.parse(coAuthors) : coAuthors
-    : [];
-
-  const paper = {
-    title,
-    abstract,
-    keywords: keywordsArray,
-    authorId: req.user.uid,
-    authorName: authorName || req.user.name || "",
-    authorEmail: authorEmail || req.user.email || "",
-    institution: institution || "",
-    coAuthors: coAuthorsArray,
-    fileUrl,
-    fileName,
-    status: "submitted", // submitted → under_review → accepted/rejected → published
-    submittedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    reviewers: [],
-    volume: null,
-    issue: null,
-    doi: null,
-  };
-
-  const docRef = await db.collection("papers").add(paper);
-
-  res.status(201).json({
-    message: "Paper submitted successfully",
-    paperId: docRef.id,
-    status: "submitted",
-  });
 };
 
 /**
@@ -85,25 +101,32 @@ const submitPaper = async (req, res) => {
  * Get all papers - admin/editor sees all, authors see own papers
  */
 const getAllPapers = async (req, res) => {
-  const { status, page = 1, limit = 20 } = req.query;
-  const isAdmin = ["admin", "editor"].includes(req.user.role);
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const isAdmin = ["admin", "editor"].includes(req.user.role);
 
-  let query = db.collection("papers").orderBy("submittedAt", "desc");
+    const whereClause = {};
 
-  // Non-admin authors only see their own papers
-  if (!isAdmin) {
-    query = query.where("authorId", "==", req.user.uid);
+    // Non-admin authors only see their own papers
+    if (!isAdmin) {
+      whereClause.authorId = req.user.uid;
+    }
+
+    // Filter by status if provided
+    if (status) {
+      whereClause.status = status;
+    }
+
+    const papers = await prisma.paper.findMany({
+      where: whereClause,
+      orderBy: { submittedAt: 'desc' }
+    });
+
+    res.json({ papers, total: papers.length });
+  } catch (error) {
+    console.error("Error fetching papers:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  // Filter by status if provided
-  if (status) {
-    query = query.where("status", "==", status);
-  }
-
-  const snapshot = await query.get();
-  const papers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
-  res.json({ papers, total: papers.length });
 };
 
 /**
@@ -111,18 +134,25 @@ const getAllPapers = async (req, res) => {
  * Public endpoint — returns all published papers
  */
 const getPublishedPapers = async (req, res) => {
-  const { volume, issue, year } = req.query;
+  try {
+    const { volume, issue, year } = req.query;
 
-  let query = db.collection("papers").where("status", "==", "published").orderBy("updatedAt", "desc");
+    const whereClause = { status: "published" };
 
-  if (volume) query = query.where("volume", "==", Number(volume));
-  if (issue) query = query.where("issue", "==", Number(issue));
-  if (year) query = query.where("year", "==", Number(year));
+    if (volume) whereClause.volume = Number(volume);
+    if (issue) whereClause.issue = Number(issue);
+    if (year) whereClause.year = Number(year);
 
-  const snapshot = await query.get();
-  const papers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const papers = await prisma.paper.findMany({
+      where: whereClause,
+      orderBy: { updatedAt: 'desc' }
+    });
 
-  res.json({ papers });
+    res.json({ papers });
+  } catch (error) {
+    console.error("Error fetching published papers:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 /**
@@ -130,24 +160,30 @@ const getPublishedPapers = async (req, res) => {
  * Get a specific paper by ID
  */
 const getPaperById = async (req, res) => {
-  const { id } = req.params;
-  const doc = await db.collection("papers").doc(id).get();
+  try {
+    const { id } = req.params;
+    const paper = await prisma.paper.findUnique({
+      where: { id }
+    });
 
-  if (!doc.exists) {
-    return res.status(404).json({ error: "Paper not found" });
+    if (!paper) {
+      return res.status(404).json({ error: "Paper not found" });
+    }
+
+    const isAdmin = ["admin", "editor"].includes(req.user?.role);
+    const isOwner = paper.authorId === req.user?.uid;
+    const isReviewer = paper.reviewers?.includes(req.user?.uid);
+
+    // Access control: only admin/editor/owner/assigned reviewer can view
+    if (!isAdmin && !isOwner && !isReviewer && paper.status !== "published") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    res.json(paper);
+  } catch (error) {
+    console.error("Error fetching paper:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const paper = { id: doc.id, ...doc.data() };
-  const isAdmin = ["admin", "editor"].includes(req.user?.role);
-  const isOwner = paper.authorId === req.user?.uid;
-  const isReviewer = paper.reviewers?.includes(req.user?.uid);
-
-  // Access control: only admin/editor/owner/assigned reviewer can view
-  if (!isAdmin && !isOwner && !isReviewer && paper.status !== "published") {
-    return res.status(403).json({ error: "Access denied" });
-  }
-
-  res.json(paper);
 };
 
 /**
@@ -155,29 +191,35 @@ const getPaperById = async (req, res) => {
  * Update paper status — admin/editor only
  */
 const updatePaperStatus = async (req, res) => {
-  const { id } = req.params;
-  const { status, volume, issue, doi, comments, year } = req.body;
+  try {
+    const { id } = req.params;
+    const { status, volume, issue, doi, comments, year } = req.body;
 
-  const validStatuses = ["submitted", "under_review", "revision_required", "accepted", "rejected", "published"];
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ error: `Invalid status. Must be: ${validStatuses.join(", ")}` });
+    const validStatuses = ["submitted", "under_review", "revision_required", "accepted", "rejected", "published"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be: ${validStatuses.join(", ")}` });
+    }
+
+    const updates = {
+      status,
+    };
+
+    if (volume) updates.volume = Number(volume);
+    if (issue) updates.issue = Number(issue);
+    if (doi) updates.doi = doi;
+    if (comments) updates.editorComments = comments;
+    if (year) updates.year = Number(year);
+
+    await prisma.paper.update({
+      where: { id },
+      data: updates
+    });
+
+    res.json({ message: `Paper status updated to: ${status}` });
+  } catch (error) {
+    console.error("Error updating paper status:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const updates = {
-    status,
-    updatedAt: new Date().toISOString(),
-    statusUpdatedBy: req.user.uid,
-  };
-
-  if (volume) updates.volume = Number(volume);
-  if (issue) updates.issue = Number(issue);
-  if (doi) updates.doi = doi;
-  if (comments) updates.editorComments = comments;
-  if (year) updates.year = Number(year);
-
-  await db.collection("papers").doc(id).update(updates);
-
-  res.json({ message: `Paper status updated to: ${status}` });
 };
 
 /**
@@ -185,26 +227,49 @@ const updatePaperStatus = async (req, res) => {
  * Assign a reviewer to a paper — admin/editor only
  */
 const assignReviewer = async (req, res) => {
-  const { id } = req.params;
-  const { reviewerId } = req.body;
+  try {
+    const { id } = req.params;
+    const { reviewerId } = req.body;
 
-  if (!reviewerId) {
-    return res.status(400).json({ error: "Reviewer ID is required" });
+    if (!reviewerId) {
+      return res.status(400).json({ error: "Reviewer ID is required" });
+    }
+
+    // Verify the reviewer exists and has the correct role
+    const reviewer = await prisma.user.findUnique({
+      where: { uid: reviewerId }
+    });
+    
+    if (!reviewer) {
+       return res.status(400).json({ error: "Reviewer not found in PostgreSQL" });
+    }
+    
+    const reviewerRoles = reviewer.roles || [];
+    if (!reviewerRoles.some(role => ["reviewer", "editor", "admin"].includes(role))) {
+      return res.status(400).json({ error: "Invalid reviewer role" });
+    }
+
+    const paper = await prisma.paper.findUnique({ where: { id }});
+    if(!paper) return res.status(404).json({ error: "Paper not found" });
+
+    const currentReviewers = paper.reviewers || [];
+    const updatedReviewers = currentReviewers.includes(reviewerId) 
+                              ? currentReviewers 
+                              : [...currentReviewers, reviewerId];
+
+    await prisma.paper.update({
+      where: { id },
+      data: {
+        reviewers: updatedReviewers,
+        status: "under_review"
+      }
+    });
+
+    res.json({ message: "Reviewer assigned successfully" });
+  } catch (error) {
+    console.error("Error assigning reviewer:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  // Verify the reviewer exists and has the correct role
-  const reviewerDoc = await db.collection("users").doc(reviewerId).get();
-  if (!reviewerDoc.exists || !["reviewer", "editor", "admin"].includes(reviewerDoc.data().role)) {
-    return res.status(400).json({ error: "Invalid reviewer ID" });
-  }
-
-  await db.collection("papers").doc(id).update({
-    reviewers: require("firebase-admin").firestore.FieldValue.arrayUnion(reviewerId),
-    status: "under_review",
-    updatedAt: new Date().toISOString(),
-  });
-
-  res.json({ message: "Reviewer assigned successfully" });
 };
 
 /**
@@ -212,37 +277,41 @@ const assignReviewer = async (req, res) => {
  * Delete a paper — admin or paper owner (if not published)
  */
 const deletePaper = async (req, res) => {
-  const { id } = req.params;
-  const doc = await db.collection("papers").doc(id).get();
+  try {
+    const { id } = req.params;
+    const paper = await prisma.paper.findUnique({ where: { id }});
 
-  if (!doc.exists) {
-    return res.status(404).json({ error: "Paper not found" });
-  }
-
-  const paper = doc.data();
-  const isAdmin = ["admin", "editor"].includes(req.user.role);
-  const isOwner = paper.authorId === req.user.uid;
-
-  if (!isAdmin && !isOwner) {
-    return res.status(403).json({ error: "Access denied" });
-  }
-
-  if (paper.status === "published" && !isAdmin) {
-    return res.status(403).json({ error: "Cannot delete a published paper" });
-  }
-
-  // Delete file from Firebase Storage if exists
-  if (paper.fileName) {
-    try {
-      await bucket.file(paper.fileName).delete();
-    } catch (e) {
-      console.warn("Could not delete file from storage:", e.message);
+    if (!paper) {
+      return res.status(404).json({ error: "Paper not found" });
     }
+
+    const isAdmin = ["admin", "editor"].includes(req.user.role);
+    const isOwner = paper.authorId === req.user.uid;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    if (paper.status === "published" && !isAdmin) {
+      return res.status(403).json({ error: "Cannot delete a published paper" });
+    }
+
+    // Delete file from Cloudinary if exists
+    if (paper.fileName) {
+      try {
+        await cloudinary.uploader.destroy(paper.fileName, { resource_type: "raw" });
+      } catch (e) {
+        console.warn("Could not delete file from Cloudinary storage:", e.message);
+      }
+    }
+
+    await prisma.paper.delete({ where: { id } });
+
+    res.json({ message: "Paper deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting paper:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  await db.collection("papers").doc(id).delete();
-
-  res.json({ message: "Paper deleted successfully" });
 };
 
 module.exports = {

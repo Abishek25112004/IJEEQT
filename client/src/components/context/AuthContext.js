@@ -1,39 +1,35 @@
-// src/context/AuthContext.js
-// Global auth state — wraps Firebase Auth with user profile from Firestore
-
+// src/components/context/AuthContext.js
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../services/firebase";
-import { authAPI } from "../services/api";
+import { auth } from "../../services/firebase";
+import { authAPI } from "../../services/api";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);        // Firebase Auth user
-  const [profile, setProfile] = useState(null);  // Firestore user profile
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch Firestore profile for the logged-in Firebase user
   const fetchProfile = async (firebaseUser) => {
     try {
-      const docRef = doc(db, "users", firebaseUser.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setProfile({ uid: firebaseUser.uid, ...docSnap.data() });
+      const data = await authAPI.getProfile();
+      if (data) {
+        const roles = Array.isArray(data.roles) && data.roles.length > 0
+          ? data.roles
+          : [data.role || "author"];
+        setProfile({ uid: firebaseUser.uid, ...data, roles });
       }
     } catch (err) {
       console.error("Failed to fetch profile:", err);
     }
   };
 
-  // Listen for Firebase Auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -47,41 +43,34 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  /**
-   * Register: creates Firebase Auth account + Firestore profile via backend
-   */
-  const register = async (name, email, password, role = "author", institution = "") => {
-    // First create via backend (which handles Firestore profile creation)
-    await authAPI.register({ name, email, password, role, institution });
-    // Then sign in to get the Firebase Auth session
+  const register = async (name, email, password) => {
+    await authAPI.register({ name, email, password });
     const result = await signInWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName: name });
     await fetchProfile(result.user);
     return result.user;
   };
 
-  /**
-   * Login with email and password
-   */
   const login = async (email, password) => {
     const result = await signInWithEmailAndPassword(auth, email, password);
     await fetchProfile(result.user);
     return result.user;
   };
 
-  /**
-   * Logout and clear state
-   */
   const logout = async () => {
     await signOut(auth);
     setUser(null);
     setProfile(null);
   };
 
-  /**
-   * Refresh profile from Firestore (call after updating profile)
-   */
   const refreshProfile = () => user && fetchProfile(user);
+
+  const hasRole = (role) => {
+    if (!profile) return false;
+    return Array.isArray(profile.roles)
+      ? profile.roles.includes(role)
+      : profile.role === role;
+  };
 
   const value = {
     user,
@@ -91,10 +80,13 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     refreshProfile,
-    isAdmin: profile?.role === "admin",
-    isEditor: ["admin", "editor"].includes(profile?.role),
-    isReviewer: ["admin", "editor", "reviewer"].includes(profile?.role),
-    role: profile?.role || null,
+    hasRole,
+    isAdmin: hasRole("admin"),
+    isEditor: hasRole("admin") || hasRole("editor"),
+    isManager: hasRole("manager"),
+    isReviewer: hasRole("admin") || hasRole("editor") || hasRole("reviewer") || hasRole("manager"),
+    role: Array.isArray(profile?.roles) ? profile.roles[0] : (profile?.role || null),
+    roles: profile?.roles || [],
   };
 
   return (

@@ -3,7 +3,7 @@
 
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
-const { db } = require("../config/firebase");
+const prisma = require("../config/db");
 
 // Initialize Razorpay with env credentials
 const razorpay = new Razorpay({
@@ -16,67 +16,68 @@ const razorpay = new Razorpay({
  * Creates a Razorpay order for APC (Article Processing Charge)
  */
 const createOrder = async (req, res) => {
-  const { paperId, amount = 5000 } = req.body; // amount in INR paise (5000 = ₹50)
+  const { paperId, amount = 5000 } = req.body;
 
   if (!paperId) {
     return res.status(400).json({ error: "Paper ID is required" });
   }
 
-  // Verify paper exists and belongs to user
-  const paperDoc = await db.collection("papers").doc(paperId).get();
-  if (!paperDoc.exists) {
-    return res.status(404).json({ error: "Paper not found" });
-  }
+  try {
+    const paper = await prisma.paper.findUnique({ where: { id: paperId }});
+    if (!paper) {
+      return res.status(404).json({ error: "Paper not found" });
+    }
 
-  const paper = paperDoc.data();
-  if (paper.authorId !== req.user.uid && req.user.role !== "admin") {
-    return res.status(403).json({ error: "Access denied" });
-  }
+    if (paper.authorId !== req.user.uid && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Access denied" });
+    }
 
-  // Check if payment already completed
-  const existingPayment = await db.collection("payments")
-    .where("paperId", "==", paperId)
-    .where("status", "==", "paid")
-    .get();
+    const existingPayment = await prisma.payment.findFirst({
+      where: {
+        paperId: paperId,
+        status: "paid"
+      }
+    });
 
-  if (!existingPayment.empty) {
-    return res.status(409).json({ error: "Payment already completed for this paper" });
-  }
+    if (existingPayment) {
+      return res.status(409).json({ error: "Payment already completed for this paper" });
+    }
 
-  // Create Razorpay order
-  const options = {
-    amount: amount * 100, // Convert to paise
-    currency: "INR",
-    receipt: `receipt_${paperId}_${Date.now()}`,
-    notes: {
-      paperId,
-      userId: req.user.uid,
+    const options = {
+      amount: amount * 100, // Convert to paise
+      currency: "INR",
+      receipt: `receipt_${paperId}_${Date.now()}`,
+      notes: {
+        paperId,
+        userId: req.user.uid,
+        paperTitle: paper.title,
+      },
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    await prisma.payment.create({
+      data: {
+        paperId,
+        amount: amount,
+        razorpayOrderId: order.id,
+        status: "pending",
+      }
+    });
+
+    res.json({
+      orderId: order.id,
+      currency: order.currency,
+      amount: order.amount,
+      keyId: process.env.RAZORPAY_KEY_ID,
       paperTitle: paper.title,
-    },
-  };
-
-  const order = await razorpay.orders.create(options);
-
-  // Store pending payment record in Firestore
-  await db.collection("payments").add({
-    userId: req.user.uid,
-    paperId,
-    amount: amount,
-    currency: "INR",
-    razorpayOrderId: order.id,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-  });
-
-  res.json({
-    orderId: order.id,
-    currency: order.currency,
-    amount: order.amount,
-    keyId: process.env.RAZORPAY_KEY_ID,
-    paperTitle: paper.title,
-    userEmail: req.user.email,
-    userName: req.user.name,
-  });
+      userEmail: req.user.email,
+      userName: req.user.name,
+    });
+  } catch (error) {
+    console.error("Error creating payment order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 /**
@@ -90,7 +91,6 @@ const verifyPayment = async (req, res) => {
     return res.status(400).json({ error: "Missing payment verification fields" });
   }
 
-  // HMAC-SHA256 signature verification
   const body = `${razorpay_order_id}|${razorpay_payment_id}`;
   const expectedSignature = crypto
     .createHmac("sha256", process.env.RAZORPAY_SECRET)
@@ -101,33 +101,28 @@ const verifyPayment = async (req, res) => {
     return res.status(400).json({ error: "Payment signature verification failed" });
   }
 
-  // Find and update the payment record
-  const paymentQuery = await db.collection("payments")
-    .where("razorpayOrderId", "==", razorpay_order_id)
-    .limit(1)
-    .get();
-
-  if (paymentQuery.empty) {
-    return res.status(404).json({ error: "Payment record not found" });
-  }
-
-  const paymentDoc = paymentQuery.docs[0];
-  await paymentDoc.ref.update({
-    razorpayPaymentId: razorpay_payment_id,
-    razorpaySignature: razorpay_signature,
-    status: "paid",
-    paidAt: new Date().toISOString(),
-  });
-
-  // Mark paper as payment complete
-  if (paperId) {
-    await db.collection("papers").doc(paperId).update({
-      paymentStatus: "paid",
-      updatedAt: new Date().toISOString(),
+  try {
+    const payment = await prisma.payment.findFirst({
+      where: { razorpayOrderId: razorpay_order_id }
     });
-  }
 
-  res.json({ message: "Payment verified successfully", paymentId: razorpay_payment_id });
+    if (!payment) {
+      return res.status(404).json({ error: "Payment record not found" });
+    }
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        razorpayPaymentId: razorpay_payment_id,
+        status: "paid",
+      }
+    });
+
+    res.json({ message: "Payment verified successfully", paymentId: razorpay_payment_id });
+  } catch (error) {
+    console.error("Error verifying payment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 /**
@@ -135,13 +130,26 @@ const verifyPayment = async (req, res) => {
  * Get current user's payment history
  */
 const getMyPayments = async (req, res) => {
-  const snapshot = await db.collection("payments")
-    .where("userId", "==", req.user.uid)
-    .orderBy("createdAt", "desc")
-    .get();
+  try {
+    const payments = await prisma.payment.findMany({
+      where: {
+        paper: {
+          authorId: req.user.uid
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        paper: {
+           select: { title: true }
+        }
+      }
+    });
 
-  const payments = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  res.json({ payments });
+    res.json({ payments });
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 module.exports = { createOrder, verifyPayment, getMyPayments };

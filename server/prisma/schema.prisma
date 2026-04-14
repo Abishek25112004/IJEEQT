@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  uid       String    @id
+  name      String
+  email     String    @unique
+  roles     String[]  // Array of roles (e.g., ["author"], ["admin"])
+  bio       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  papers    Paper[]
+  reviews   Review[]
+}
+
+model Paper {
+  id             String    @id @default(uuid())
+  title          String
+  abstract       String
+  keywords       String[]
+  
+  authorId       String
+  author         User      @relation(fields: [authorId], references: [uid])
+  
+  authorName     String
+  authorEmail    String
+  institution    String?
+  coAuthors      Json?     // Stored as JSON array
+  
+  fileUrl        String?
+  fileName       String?
+  
+  status         String    @default("submitted") 
+  // Statuses: submitted, under_review, revision_required, accepted, rejected, published
+  
+  submittedAt    DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  reviewers      String[]  // Array of reviewer User `uid`s
+  
+  volume         Int?
+  issue          Int?
+  doi            String?
+  year           Int?
+  editorComments String?
+  
+  reviews        Review[]
+  payments       Payment[]
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  paperId     String
+  paper       Paper    @relation(fields: [paperId], references: [id])
+  
+  reviewerId  String
+  reviewer    User     @relation(fields: [reviewerId], references: [uid])
+  
+  comments    String?
+  decision    String
+  
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  paperId           String
+  paper             Paper    @relation(fields: [paperId], references: [id])
+  
+  amount            Float
+  status            String
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  
+  createdAt         DateTime @default(now())
+}

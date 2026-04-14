@@ -2,7 +2,8 @@
 // Admin-only operations: user management, statistics
 // Supports multi-role system (roles[] array) with backward compatibility
 
-const { db, auth } = require("../config/firebase");
+const { auth } = require("../config/firebase");
+const prisma = require("../config/db");
 
 const ALL_VALID_ROLES = ["admin", "editor", "manager", "reviewer", "author"];
 
@@ -11,26 +12,28 @@ const ALL_VALID_ROLES = ["admin", "editor", "manager", "reviewer", "author"];
  * Get all users with their roles
  */
 const getAllUsers = async (req, res) => {
-  const snapshot = await db.collection("users").orderBy("createdAt", "desc").get();
-  const users = snapshot.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      uid: doc.id,
+  try {
+    const allUsers = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" }
+    });
+
+    const users = allUsers.map((data) => ({
       ...data,
-      // Normalize: if old single-role format, convert for display
-      roles: Array.isArray(data.roles)
-        ? data.roles
-        : [data.role || "author"],
-    };
-  });
-  res.json({ users, total: users.length });
+      // Normalize: keep legacy role field as primary role for backward compat
+      role: data.roles?.[0] || "author"
+    }));
+
+    res.json({ users, total: users.length });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 /**
  * PATCH /api/admin/users/:uid/role
  * Assign multiple roles to a user.
  * Body: { roles: ["author", "reviewer"] }
- * Also stores rich roleUpdatedBy object with admin's name, email, and role.
  */
 const updateUserRole = async (req, res) => {
   const { uid } = req.params;
@@ -52,28 +55,19 @@ const updateUserRole = async (req, res) => {
     return res.status(400).json({ error: "Cannot change your own role" });
   }
 
-  // Fetch admin's own profile for rich roleUpdatedBy
-  const adminDoc = await db.collection("users").doc(req.user.uid).get();
-  const adminData = adminDoc.exists ? adminDoc.data() : {};
+  try {
+    await prisma.user.update({
+      where: { uid },
+      data: {
+        roles: roles
+      }
+    });
 
-  const roleUpdatedBy = {
-    uid: req.user.uid,
-    name: adminData.name || req.user.name || "Unknown Admin",
-    email: adminData.email || req.user.email || "",
-    roles: Array.isArray(adminData.roles)
-      ? adminData.roles
-      : [adminData.role || "admin"],
-  };
-
-  await db.collection("users").doc(uid).update({
-    roles,
-    // Keep legacy role field as primary role for backward compat
-    role: roles[0],
-    roleUpdatedAt: new Date().toISOString(),
-    roleUpdatedBy,
-  });
-
-  res.json({ message: `User roles updated to: ${roles.join(", ")}` });
+    res.json({ message: `User roles updated to: ${roles.join(", ")}` });
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 /**
@@ -87,75 +81,86 @@ const deleteUser = async (req, res) => {
     return res.status(400).json({ error: "Cannot delete your own account" });
   }
 
-  await auth.deleteUser(uid);
-  await db.collection("users").doc(uid).delete();
+  try {
+    await auth.deleteUser(uid);
+    await prisma.user.delete({
+      where: { uid }
+    });
 
-  res.json({ message: "User deleted successfully" });
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 /**
  * GET /api/admin/stats
- * Dashboard statistics — handles both old role and new roles[] format
+ * Dashboard statistics
  */
 const getDashboardStats = async (req, res) => {
-  const [papersSnap, usersSnap, reviewsSnap] = await Promise.all([
-    db.collection("papers").get(),
-    db.collection("users").get(),
-    db.collection("reviews").get(),
-  ]);
+  try {
+    const [papers, users, reviewsCount] = await Promise.all([
+      prisma.paper.findMany({ select: { status: true } }),
+      prisma.user.findMany({ select: { roles: true } }),
+      prisma.review.count(),
+    ]);
 
-  const papers = papersSnap.docs.map((d) => d.data());
-  const statusCounts = papers.reduce((acc, p) => {
-    acc[p.status] = (acc[p.status] || 0) + 1;
-    return acc;
-  }, {});
+    const statusCounts = papers.reduce((acc, p) => {
+      acc[p.status] = (acc[p.status] || 0) + 1;
+      return acc;
+    }, {});
 
-  const users = usersSnap.docs.map((d) => d.data());
-  const roleCounts = users.reduce((acc, u) => {
-    // Handle both roles[] array and legacy role string
-    const userRoles = Array.isArray(u.roles) ? u.roles : [u.role || "author"];
-    userRoles.forEach((role) => {
-      acc[role] = (acc[role] || 0) + 1;
+    const roleCounts = users.reduce((acc, u) => {
+      const userRoles = u.roles && u.roles.length > 0 ? u.roles : ["author"];
+      userRoles.forEach((role) => {
+        acc[role] = (acc[role] || 0) + 1;
+      });
+      return acc;
+    }, {});
+
+    res.json({
+      papers: { total: papers.length, byStatus: statusCounts },
+      users: { total: users.length, byRole: roleCounts },
+      reviews: { total: reviewsCount },
     });
-    return acc;
-  }, {});
-
-  res.json({
-    papers: { total: papers.length, byStatus: statusCounts },
-    users: { total: users.length, byRole: roleCounts },
-    reviews: { total: reviewsSnap.size },
-  });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 /**
  * GET /api/admin/reviewers
- * Get all users with reviewer/editor/admin/manager role (for assignment dropdown)
- * Handles both old role and new roles[] array format
+ * Get all users with reviewer/editor/admin/manager role
  */
 const getReviewers = async (req, res) => {
-  // Fetch all users and filter in code to support both role formats
-  const snapshot = await db.collection("users").get();
+  try {
+    const reviewerRoles = ["reviewer", "editor", "admin", "manager"];
 
-  const reviewerRoles = ["reviewer", "editor", "admin", "manager"];
+    // Prisma doesn't have an easy native "ARRAY && ARRAY" overlap for string[], 
+    // but in newer Prisma we can use hasSome.
+    const allUsers = await prisma.user.findMany({
+      where: {
+        roles: {
+          hasSome: reviewerRoles
+        }
+      }
+    });
 
-  const reviewers = snapshot.docs
-    .map((doc) => {
-      const data = doc.data();
-      const userRoles = Array.isArray(data.roles)
-        ? data.roles
-        : [data.role || "author"];
-      return {
-        uid: doc.id,
-        name: data.name,
-        email: data.email,
-        roles: userRoles,
-        // Legacy compatibility
-        role: userRoles[0],
-      };
-    })
-    .filter((u) => u.roles.some((r) => reviewerRoles.includes(r)));
+    const reviewers = allUsers.map((data) => ({
+      uid: data.uid,
+      name: data.name,
+      email: data.email,
+      roles: data.roles,
+      role: data.roles[0] || "author"
+    }));
 
-  res.json({ reviewers });
+    res.json({ reviewers });
+  } catch (error) {
+    console.error("Error fetching reviewers:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 module.exports = { getAllUsers, updateUserRole, deleteUser, getDashboardStats, getReviewers };

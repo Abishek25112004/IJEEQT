@@ -2,13 +2,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../services/firebase";
+import { auth } from "../services/firebase";
 import { authAPI } from "../services/api";
 
 const AuthContext = createContext(null);
@@ -20,10 +18,9 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfile = async (firebaseUser) => {
     try {
-      const docRef = doc(db, "users", firebaseUser.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
+      // Fetch profile data from our PostgreSQL backend via REST API
+      const data = await authAPI.getProfile();
+      if (data) {
         // Normalize roles — support both old role string and new roles array
         const roles = Array.isArray(data.roles) && data.roles.length > 0
           ? data.roles
@@ -70,7 +67,6 @@ export const AuthProvider = ({ children }) => {
 
   const refreshProfile = () => user && fetchProfile(user);
 
-  // Helper: check if user has a specific role (works with roles array)
   const hasRole = (role) => {
     if (!profile) return false;
     return Array.isArray(profile.roles)
@@ -91,7 +87,6 @@ export const AuthProvider = ({ children }) => {
     isEditor: hasRole("admin") || hasRole("editor"),
     isManager: hasRole("manager"),
     isReviewer: hasRole("admin") || hasRole("editor") || hasRole("reviewer") || hasRole("manager"),
-    // Primary role string for display
     role: Array.isArray(profile?.roles) ? profile.roles[0] : (profile?.role || null),
     roles: profile?.roles || [],
   };

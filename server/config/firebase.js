@@ -23,10 +23,6 @@ const initializeFirebase = () => {
 
 const firebase = initializeFirebase();
 
-// Export commonly-used services
-const db = firebase.firestore();
 const auth = firebase.auth();
-const storage = firebase.storage();
-const bucket = storage.bucket();
 
-module.exports = { firebase, db, auth, storage, bucket };
+module.exports = { firebase, auth };

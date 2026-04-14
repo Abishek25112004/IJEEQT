@@ -1,12 +1,13 @@
 // controllers/authController.js
-// Handles user registration and login via Firebase Auth + Firestore
+// Handles user registration and login via Firebase Auth + PostgreSQL (Prisma)
 
-const { auth, db } = require("../config/firebase");
+const { auth } = require("../config/firebase");
 const { validationResult } = require("express-validator");
+const prisma = require("../config/db");
 
 /**
  * POST /api/auth/register
- * Creates Firebase Auth user and stores profile in Firestore.
+ * Creates Firebase Auth user and stores profile in PostgreSQL.
  * Institution field is intentionally omitted.
  * Roles stored as an array for multi-role support.
  */
@@ -26,13 +27,15 @@ const register = async (req, res) => {
       displayName: name,
     });
 
-    // Store profile in Firestore — no institution field
-    await db.collection("users").doc(userRecord.uid).set({
-      name,
-      email,
-      roles: ["author"], // array-based roles (default: author)
-      bio: "",
-      createdAt: new Date().toISOString(),
+    // Store profile in PostgreSQL via Prisma
+    await prisma.user.create({
+      data: {
+        uid: userRecord.uid,
+        name,
+        email,
+        roles: ["author"], // array-based roles (default: author)
+        bio: "",
+      }
     });
 
     res.status(201).json({
@@ -44,27 +47,35 @@ const register = async (req, res) => {
     if (error.code === "auth/email-already-exists") {
       return res.status(409).json({ error: "Email already registered" });
     }
-    throw error;
+    console.error("Registration error:", error);
+    res.status(500).json({ error: "Internal server error during registration" });
   }
 };
 
 /**
  * GET /api/auth/profile
- * Returns the logged-in user's Firestore profile
+ * Returns the logged-in user's PostgreSQL profile
  */
 const getProfile = async (req, res) => {
-  const userDoc = await db.collection("users").doc(req.user.uid).get();
+  try {
+    const userProfile = await prisma.user.findUnique({
+      where: { uid: req.user.uid }
+    });
 
-  if (!userDoc.exists) {
-    return res.status(404).json({ error: "User profile not found" });
+    if (!userProfile) {
+      return res.status(404).json({ error: "User profile not found" });
+    }
+
+    res.json(userProfile);
+  } catch (error) {
+    console.error("Profile error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.json({ uid: req.user.uid, ...userDoc.data() });
 };
 
 /**
  * PUT /api/auth/profile
- * Updates the logged-in user's profile (no institution field)
+ * Updates the logged-in user's profile
  */
 const updateProfile = async (req, res) => {
   const { name, bio } = req.body;
@@ -72,15 +83,22 @@ const updateProfile = async (req, res) => {
   const updates = {};
   if (name) updates.name = name;
   if (bio !== undefined) updates.bio = bio;
-  updates.updatedAt = new Date().toISOString();
 
-  await db.collection("users").doc(req.user.uid).update(updates);
+  try {
+    await prisma.user.update({
+      where: { uid: req.user.uid },
+      data: updates
+    });
 
-  if (name) {
-    await auth.updateUser(req.user.uid, { displayName: name });
+    if (name) {
+      await auth.updateUser(req.user.uid, { displayName: name });
+    }
+
+    res.json({ message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ error: "Internal server error updating profile" });
   }
-
-  res.json({ message: "Profile updated successfully" });
 };
 
 module.exports = { register, getProfile, updateProfile };

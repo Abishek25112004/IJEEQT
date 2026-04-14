@@ -1,10 +1,8 @@
 // src/services/firebase.js
-// Firebase client SDK initialization
+// Firebase client SDK initialization (Auth only)
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB1S5qowOC_JAbhX3SV6jJNQ_msMqdLIfQ",
@@ -18,6 +16,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
 export default app;
