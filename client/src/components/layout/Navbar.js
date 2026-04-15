@@ -14,6 +14,10 @@ const Navbar = () => {
     navigate("/");
   };
 
+  const userRoles = Array.isArray(profile?.roles) && profile.roles.length > 0
+    ? profile.roles
+    : [profile?.role || "author"];
+
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/about", label: "About" },
@@ -103,9 +107,14 @@ const Navbar = () => {
                       <Link to="/submit-paper" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropdownOpen(false)}>
                         Submit Paper
                       </Link>
-                      {["admin", "editor"].includes(profile?.role) && (
+                      {userRoles.some(r => ["admin", "editor", "manager"].includes(r)) && (
                         <Link to="/admin" className="block px-4 py-2 text-sm text-blue-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
                           Admin Panel
+                        </Link>
+                      )}
+                      {userRoles.some(r => ["admin", "manager"].includes(r)) && (
+                        <Link to="/admin#site-content" className="block px-4 py-2 text-sm text-blue-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
+                          Site Content
                         </Link>
                       )}
                       <button

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState } from "../../components/common";
@@ -123,15 +124,22 @@ const PublishForm = ({ paperId, onPublish }) => {
 
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
 const AdminPanel = () => {
+  const location = useLocation();
   const { profile } = useAuth();
   const [stats, setStats] = useState(null);
   const [papers, setPapers] = useState([]);
   const [users, setUsers] = useState([]);
   const [reviewers, setReviewers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("papers");
+  const [activeTab, setActiveTab] = useState(location.hash === "#site-content" ? "site-content" : "papers");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (location.hash === "#site-content") {
+      setActiveTab("site-content");
+    }
+  }, [location.hash]);
 
   // Search state
   const [paperSearch, setPaperSearch] = useState("");

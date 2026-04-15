@@ -72,12 +72,12 @@ function App() {
             }
           />
 
-          {/* Admin / Editor only */}
+          {/* Admin / Editor / Manager only */}
           <Route
             path="/admin"
             element={
               <Layout>
-                <ProtectedRoute requiredRole={["admin", "editor"]}>
+                <ProtectedRoute requiredRole={["admin", "editor", "manager"]}>
                   <AdminPanel />
                 </ProtectedRoute>
               </Layout>
