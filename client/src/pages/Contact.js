@@ -1,11 +1,28 @@
 // src/pages/Contact.js
-import React, { useState } from "react";
-import { PageHero, Alert, Card } from "../components/common";
+import React, { useState, useEffect } from "react";
+import { PageHero, Alert, Card, Spinner } from "../components/common";
+import { contentAPI } from "../services/api";
 
 const Contact = () => {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [contacts, setContacts] = useState([
+    { icon: "📧", label: "Editorial Email", value: "editor@ijart.org" },
+    { icon: "📧", label: "Submissions", value: "submit@ijart.org" },
+    { icon: "📞", label: "Phone", value: "+91 8072287692" },
+    { icon: "📍", label: "Address", value: "Academic Research Press\n123, Science Park, New Delhi – 110016, India" },
+    { icon: "🕒", label: "Office Hours", value: "Mon–Fri, 9:00 AM – 5:30 PM IST" },
+  ]);
+  const [loadingContacts, setLoadingContacts] = useState(true);
+
+  useEffect(() => {
+    contentAPI.getContent("contacts")
+      .then((res) => setContacts(res.value))
+      .catch(() => {})
+      .finally(() => setLoadingContacts(false));
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -26,13 +43,7 @@ const Contact = () => {
         <div className="space-y-5">
           <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3">Editorial Office</h2>
           <div className="space-y-4 text-sm text-gray-700">
-            {[
-              { icon: "📧", label: "Editorial Email", value: "editor@ijart.org" },
-              { icon: "📧", label: "Submissions", value: "submit@ijart.org" },
-              { icon: "📞", label: "Phone", value: "+91 8072287692" },
-              { icon: "📍", label: "Address", value: "Academic Research Press\n123, Science Park, New Delhi – 110016, India" },
-              { icon: "🕒", label: "Office Hours", value: "Mon–Fri, 9:00 AM – 5:30 PM IST" },
-            ].map((c) => (
+            {loadingContacts ? <Spinner center /> : contacts.map((c) => (
               <div key={c.label} className="flex gap-3">
                 <span className="text-xl shrink-0">{c.icon}</span>
                 <div>

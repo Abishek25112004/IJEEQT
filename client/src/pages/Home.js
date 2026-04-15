@@ -1,18 +1,35 @@
 // src/pages/Home.js
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { papersAPI } from "../services/api";
+import { papersAPI, contentAPI } from "../services/api";
 import { PaperCard, Spinner, Card } from "../components/common";
 
 const Home = () => {
   const [latestPapers, setLatestPapers] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Dynamic Content States
+  const [cfp, setCfp] = useState({
+    volume: "12", issue: "2",
+    submissionDeadline: "March 31, 2025",
+    reviewNotification: "Within 4–6 weeks",
+    publication: "June 2025",
+    apc: "₹5,000 / $60 USD",
+  });
+  const [indexing, setIndexing] = useState([
+    "Scopus", "Web of Science", "DOAJ", "CrossRef", "Google Scholar", "PubMed"
+  ]);
+  const [showAllIndexing, setShowAllIndexing] = useState(false);
 
   useEffect(() => {
     papersAPI.getPublished({ limit: 6 })
       .then((res) => setLatestPapers(res.papers || []))
       .catch(() => setLatestPapers([]))
       .finally(() => setLoading(false));
+
+    // Fetch dynamic content
+    contentAPI.getContent("call_for_papers").then((res) => setCfp(res.value)).catch(() => {});
+    contentAPI.getContent("indexing_abstracting").then((res) => setIndexing(res.value)).catch(() => {});
   }, []);
 
   const journalName = process.env.REACT_APP_JOURNAL_NAME || "International Journal of Engineering Excellence In Quantum Technologies";
@@ -68,24 +85,24 @@ const Home = () => {
           <div className="bg-blue-800 bg-opacity-50 rounded-xl p-6 border border-blue-600">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-              Call for Papers — Volume 12, Issue 2
+              Call for Papers — Volume {cfp.volume}, Issue {cfp.issue}
             </h3>
             <ul className="space-y-3 text-sm text-blue-100">
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">📅</span>
-                <span><strong className="text-white">Submission Deadline:</strong> March 31, 2025</span>
+                <span><strong className="text-white">Submission Deadline:</strong> {cfp.submissionDeadline}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">🔬</span>
-                <span><strong className="text-white">Review Notification:</strong> Within 4–6 weeks</span>
+                <span><strong className="text-white">Review Notification:</strong> {cfp.reviewNotification}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">📖</span>
-                <span><strong className="text-white">Publication:</strong> June 2025</span>
+                <span><strong className="text-white">Publication:</strong> {cfp.publication}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">💰</span>
-                <span><strong className="text-white">APC:</strong> ₹5,000 / $60 USD</span>
+                <span><strong className="text-white">APC:</strong> {cfp.apc}</span>
               </li>
             </ul>
             <Link
@@ -162,11 +179,18 @@ const Home = () => {
 
           {/* Indexing */}
           <Card className="p-5">
-            <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wide border-b pb-2">
-              Indexing & Abstracting
-            </h3>
+            <div className="flex justify-between items-center mb-3 pb-2 border-b">
+              <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
+                Indexing & Abstracting
+              </h3>
+              {indexing.length > 6 && (
+                <button onClick={() => setShowAllIndexing(true)} className="text-blue-600 text-xs hover:underline">
+                  View All
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              {["Scopus", "Web of Science", "DOAJ", "CrossRef", "Google Scholar", "PubMed"].map((idx) => (
+              {indexing.slice(0, 6).map((idx) => (
                 <div key={idx} className="bg-gray-50 border border-gray-200 rounded text-xs text-center py-2 font-medium text-gray-700">
                   {idx}
                 </div>
@@ -189,6 +213,27 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* View All Indexing Modal */}
+      {showAllIndexing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center p-5 border-b">
+              <h3 className="font-bold text-lg text-gray-900">Indexing & Abstracting ({indexing.length})</h3>
+              <button onClick={() => setShowAllIndexing(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <div className="flex flex-wrap gap-2">
+                {indexing.map((idx, i) => (
+                  <div key={i} className="bg-blue-50 border border-blue-100 text-blue-800 rounded px-3 py-1.5 text-sm font-medium">
+                    {idx}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

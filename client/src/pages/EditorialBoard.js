@@ -1,8 +1,9 @@
 // src/pages/EditorialBoard.js
-import React from "react";
-import { PageHero, Card } from "../components/common";
+import React, { useState, useEffect } from "react";
+import { PageHero, Card, Spinner } from "../components/common";
+import { contentAPI } from "../services/api";
 
-const boardMembers = {
+const DEFAULT_BOARD = {
   "Editor-in-Chief": [
     {
       name: "Prof. Dr. Rajesh Kumar",
@@ -60,28 +61,48 @@ const MemberCard = ({ member }) => (
   </Card>
 );
 
-const EditorialBoard = () => (
-  <div>
+const EditorialBoard = () => {
+  const [board, setBoard] = useState(DEFAULT_BOARD);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    contentAPI.getContent("editorial_board")
+      .then((res) => {
+        if (Object.keys(res.value || {}).length > 0) {
+          setBoard(res.value);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div>
     <PageHero
       title="Editorial Board"
       subtitle="Our distinguished panel of international experts ensures the quality and integrity of every publication."
       breadcrumb="Home / Editorial Board"
     />
     <div className="max-w-6xl mx-auto px-4 py-12 space-y-10">
-      {Object.entries(boardMembers).map(([section, members]) => (
-        <div key={section}>
-          <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3 mb-5">
-            {section}
-          </h2>
-          <div className={`grid gap-4 ${section === "Editor-in-Chief" ? "grid-cols-1 max-w-md" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
-            {members.map((m) => (
-              <MemberCard key={m.name} member={m} />
-            ))}
+      {loading ? (
+        <Spinner center />
+      ) : (
+        Object.entries(board).map(([section, members]) => (
+          <div key={section}>
+            <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3 mb-5">
+              {section}
+            </h2>
+            <div className={`grid gap-4 ${section === "Editor-in-Chief" ? "grid-cols-1 max-w-md" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
+              {members.map((m) => (
+                <MemberCard key={m.name} member={m} />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   </div>
-);
+  );
+};
 
 export default EditorialBoard;

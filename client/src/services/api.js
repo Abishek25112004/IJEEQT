@@ -85,4 +85,10 @@ export const paymentsAPI = {
   getMyPayments: () => api.get("/payments/my-payments"),
 };
 
+// ─── Site Content ─────────────────────────────────────────────────────────────
+export const contentAPI = {
+  getContent: (key) => api.get(`/content/${key}`),
+  updateContent: (key, value) => api.put(`/content/${key}`, { value }),
+};
+
 export default api;

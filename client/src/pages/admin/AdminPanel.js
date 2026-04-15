@@ -1,8 +1,8 @@
-// src/pages/admin/AdminPanel.js
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState } from "../../components/common";
+import SiteContentManager from "./SiteContentManager";
 
 const ALL_ROLES = ["author", "reviewer", "editor", "manager", "admin"];
 
@@ -217,6 +217,9 @@ const AdminPanel = () => {
   };
 
   const tabs = ["papers", "users", "stats"];
+  if (isAdmin || profile?.roles?.includes("manager") || profile?.role === "manager") {
+    tabs.push("site-content");
+  }
 
   return (
     <div>
@@ -386,6 +389,10 @@ const AdminPanel = () => {
                   </table>
                 </div>
               </div>
+            )}
+            {/* ── Site Content ── */}
+            {activeTab === "site-content" && (
+              <SiteContentManager />
             )}
           </>
         )}
