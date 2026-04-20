@@ -22,6 +22,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import AdminPanel from "./pages/admin/AdminPanel";
+import SiteContentPage from "./pages/admin/SiteContentPage";
 
 // Layout wrapper for pages with Navbar + Footer
 const Layout = ({ children }) => (
@@ -72,13 +73,25 @@ function App() {
             }
           />
 
-          {/* Admin / Editor / Manager only */}
+          {/* Admin / Editor only */}
           <Route
             path="/admin"
             element={
               <Layout>
-                <ProtectedRoute requiredRole={["admin", "editor", "manager"]}>
+                <ProtectedRoute requiredRole={["admin", "editor"]}>
                   <AdminPanel />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+
+          {/* Admin / Manager only */}
+          <Route
+            path="/site-content"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole={["admin", "manager"]}>
+                  <SiteContentPage />
                 </ProtectedRoute>
               </Layout>
             }

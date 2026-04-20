@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState } from "../../components/common";
-import SiteContentManager from "./SiteContentManager";
 
 const ALL_ROLES = ["author", "reviewer", "editor", "manager", "admin"];
 
@@ -131,15 +130,9 @@ const AdminPanel = () => {
   const [users, setUsers] = useState([]);
   const [reviewers, setReviewers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(location.hash === "#site-content" ? "site-content" : "papers");
+  const [activeTab, setActiveTab] = useState("papers");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
-
-  useEffect(() => {
-    if (location.hash === "#site-content") {
-      setActiveTab("site-content");
-    }
-  }, [location.hash]);
 
   // Search state
   const [paperSearch, setPaperSearch] = useState("");
@@ -225,9 +218,6 @@ const AdminPanel = () => {
   };
 
   const tabs = ["papers", "users", "stats"];
-  if (isAdmin || profile?.roles?.includes("manager") || profile?.role === "manager") {
-    tabs.push("site-content");
-  }
 
   return (
     <div>
@@ -398,10 +388,7 @@ const AdminPanel = () => {
                 </div>
               </div>
             )}
-            {/* ── Site Content ── */}
-            {activeTab === "site-content" && (
-              <SiteContentManager />
-            )}
+            {/* ── Tabs Content Ends ── */}
           </>
         )}
       </div>

@@ -107,13 +107,13 @@ const Navbar = () => {
                       <Link to="/submit-paper" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropdownOpen(false)}>
                         Submit Paper
                       </Link>
-                      {userRoles.some(r => ["admin", "editor", "manager"].includes(r)) && (
+                      {userRoles.some(r => ["admin", "editor"].includes(r)) && (
                         <Link to="/admin" className="block px-4 py-2 text-sm text-blue-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
                           Admin Panel
                         </Link>
                       )}
                       {userRoles.some(r => ["admin", "manager"].includes(r)) && (
-                        <Link to="/admin#site-content" className="block px-4 py-2 text-sm text-blue-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
+                        <Link to="/site-content" className="block px-4 py-2 text-sm text-blue-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
                           Site Content
                         </Link>
                       )}

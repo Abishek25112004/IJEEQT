@@ -91,10 +91,15 @@ const Dashboard = () => {
     }
   };
 
-  // Show admin panel link for users with elevated roles
+  // Show admin panel link for admins and editors
   const showAdminLink =
-    profile?.roles?.some((r) => ["admin", "editor", "manager"].includes(r)) ||
-    ["admin", "editor", "manager"].includes(profile?.role);
+    profile?.roles?.some((r) => ["admin", "editor"].includes(r)) ||
+    ["admin", "editor"].includes(profile?.role);
+
+  // Show site content link for admins and managers
+  const showContentLink =
+    profile?.roles?.some((r) => ["admin", "manager"].includes(r)) ||
+    ["admin", "manager"].includes(profile?.role);
 
   return (
     <div>
@@ -128,6 +133,11 @@ const Dashboard = () => {
           {showAdminLink && (
             <Link to="/admin" className="bg-gray-800 text-white text-sm px-4 py-2 rounded-lg hover:bg-gray-900 transition font-medium">
               Admin Panel
+            </Link>
+          )}
+          {showContentLink && (
+            <Link to="/site-content" className="bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-800 transition font-medium">
+              Manage Site Content
             </Link>
           )}
         </div>
