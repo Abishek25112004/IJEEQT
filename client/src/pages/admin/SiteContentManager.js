@@ -167,97 +167,220 @@ const IndexingForm = ({ data, onSave, saving }) => {
   );
 };
 
-// ─── Editorial Board Form (Raw JSON wrapper for now for complex logic) ──────
+// ─── Editorial Board Form ──────────────────────────────────────────────────
 const EditorialBoardForm = ({ data, onSave, saving }) => {
-  const [jsonText, setJsonText] = useState("");
-  const [err, setErr] = useState("");
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    if (Object.keys(data || {}).length === 0) {
-      // Default structure
-      setJsonText(JSON.stringify({
-        "Editor-in-Chief": [
-          { name: "Prof. Dr. Rajesh Kumar", institution: "IIT Delhi", country: "India", specialization: "AI" }
-        ],
-        "Associate Editors": [],
-        "Editorial Board Members": []
-      }, null, 2));
+    if (!data || Object.keys(data).length === 0) {
+      setCategories([
+        {
+          category: "Editor-in-Chief",
+          members: [{ name: "Prof. Dr. Rajesh Kumar", institution: "IIT Delhi", country: "India", specialization: "AI" }]
+        },
+        { category: "Associate Editors", members: [] },
+        { category: "Editorial Board Members", members: [] }
+      ]);
     } else {
-      setJsonText(JSON.stringify(data, null, 2));
+      const arr = Object.keys(data).map(key => ({
+        category: key,
+        members: data[key] || []
+      }));
+      setCategories(arr);
     }
   }, [data]);
 
   const handleSave = () => {
-    setErr("");
-    try {
-      const parsed = JSON.parse(jsonText);
-      onSave(parsed);
-    } catch (e) {
-      setErr("Invalid JSON format");
-    }
+    const output = {};
+    categories.forEach(c => {
+      if (c.category.trim()) {
+        output[c.category.trim()] = c.members;
+      }
+    });
+    onSave(output);
+  };
+
+  const addCategory = () => setCategories([...categories, { category: "New Category", members: [] }]);
+  
+  const removeCategory = (idx) => {
+    const newCats = [...categories];
+    newCats.splice(idx, 1);
+    setCategories(newCats);
+  };
+
+  const updateCategoryName = (idx, val) => {
+    const newCats = [...categories];
+    newCats[idx].category = val;
+    setCategories(newCats);
+  };
+
+  const addMember = (catIdx) => {
+    const newCats = [...categories];
+    newCats[catIdx].members.push({ name: "", institution: "", country: "", specialization: "" });
+    setCategories(newCats);
+  };
+
+  const removeMember = (catIdx, memIdx) => {
+    const newCats = [...categories];
+    newCats[catIdx].members.splice(memIdx, 1);
+    setCategories(newCats);
+  };
+
+  const updateMember = (catIdx, memIdx, field, val) => {
+    const newCats = [...categories];
+    newCats[catIdx].members[memIdx][field] = val;
+    setCategories(newCats);
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-        Edit the categories and members here. Use strict JSON formatting.
-      </p>
-      {err && <div className="text-red-500 text-sm font-bold">{err}</div>}
-      <textarea
-        className="w-full h-96 p-4 border rounded font-mono text-sm bg-gray-50 focus:bg-white transition-colors"
-        value={jsonText}
-        onChange={(e) => setJsonText(e.target.value)}
-      />
-      <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 disabled:opacity-50">
-        {saving ? "Saving..." : "Save JSON"}
-      </button>
+    <div className="space-y-6">
+      {categories.map((cat, cIdx) => (
+        <div key={cIdx} className="border border-gray-200 rounded-xl p-5 bg-gray-50/50 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-gray-200 pb-3">
+            <input 
+              value={cat.category} 
+              onChange={(e) => updateCategoryName(cIdx, e.target.value)}
+              className="font-bold text-lg text-gray-800 bg-transparent px-1 py-1 outline-none focus:ring-2 focus:ring-blue-500 rounded w-full sm:max-w-sm transition-all border border-transparent hover:border-gray-300 focus:bg-white"
+              placeholder="Category Name (e.g. Associate Editors)"
+            />
+            <button onClick={() => removeCategory(cIdx)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-red-200 shrink-0">
+              Remove Category
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {cat.members.length === 0 && (
+              <p className="text-sm text-gray-400 italic px-2">No members in this category.</p>
+            )}
+            {cat.members.map((mem, mIdx) => (
+              <div key={mIdx} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm relative group">
+                <div className="col-span-12 sm:col-span-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                  <input placeholder="Prof. John Doe" value={mem.name} onChange={(e) => updateMember(cIdx, mIdx, "name", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div className="col-span-12 sm:col-span-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Institution</label>
+                  <input placeholder="University Name" value={mem.institution} onChange={(e) => updateMember(cIdx, mIdx, "institution", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div className="col-span-12 sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                  <input placeholder="USA" value={mem.country} onChange={(e) => updateMember(cIdx, mIdx, "country", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div className="col-span-12 sm:col-span-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Specialization</label>
+                  <input placeholder="Area of research" value={mem.specialization} onChange={(e) => updateMember(cIdx, mIdx, "specialization", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div className="col-span-12 sm:col-span-1 flex justify-end sm:justify-center mt-2 sm:mt-5">
+                  <button onClick={() => removeMember(cIdx, mIdx)} className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors" title="Remove Member">
+                    <span className="text-xl leading-none">&times;</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button onClick={() => addMember(cIdx)} className="mt-2 text-blue-600 hover:bg-blue-50 text-sm font-medium px-4 py-2 rounded-lg transition-colors border border-dashed border-blue-200 hover:border-blue-300 inline-flex items-center gap-2">
+              <span>+</span> Add Member
+            </button>
+          </div>
+        </div>
+      ))}
+      
+      <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 mt-6">
+        <button onClick={addCategory} className="bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-semibold transition-colors">
+          + Add Category
+        </button>
+        <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 text-sm font-semibold transition-colors flex items-center gap-2">
+          {saving ? "Saving..." : "Save Editorial Board"}
+        </button>
+      </div>
     </div>
   );
 };
 
 // ─── Contacts Form ──────────────────────────────────────────────────────────
 const ContactsForm = ({ data, onSave, saving }) => {
-  const [jsonText, setJsonText] = useState("");
-  const [err, setErr] = useState("");
+  const [contacts, setContacts] = useState([]);
 
   useEffect(() => {
-    if (Object.keys(data || {}).length === 0) {
-      setJsonText(JSON.stringify([
+    if (!data || Object.keys(data).length === 0) {
+      setContacts([
         { icon: "📧", label: "Editorial Email", value: "editor@ijart.org" },
         { icon: "📧", label: "Submissions", value: "submit@ijart.org" },
         { icon: "📞", label: "Phone", value: "+91 8072287692" },
-        { icon: "📍", label: "Address", value: "Academic Research Press\\n123, Science Park, New Delhi – 110016, India" },
+        { icon: "📍", label: "Address", value: "Academic Research Press\n123, Science Park, New Delhi – 110016, India" },
         { icon: "🕒", label: "Office Hours", value: "Mon–Fri, 9:00 AM – 5:30 PM IST" }
-      ], null, 2));
+      ]);
     } else {
-      setJsonText(JSON.stringify(data, null, 2));
+      setContacts(data);
     }
   }, [data]);
 
   const handleSave = () => {
-    setErr("");
-    try {
-      const parsed = JSON.parse(jsonText);
-      onSave(parsed);
-    } catch (e) {
-      setErr("Invalid JSON format");
-    }
+    onSave(contacts);
+  };
+
+  const addContact = () => setContacts([...contacts, { icon: "📌", label: "New Detail", value: "" }]);
+  
+  const removeContact = (idx) => {
+    const newContacts = [...contacts];
+    newContacts.splice(idx, 1);
+    setContacts(newContacts);
+  };
+
+  const updateContact = (idx, field, val) => {
+    const newContacts = [...contacts];
+    newContacts[idx][field] = val;
+    setContacts(newContacts);
   };
 
   return (
     <div className="space-y-4">
-       <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-        Edit the contact list using JSON. Each Object should have `icon`, `label`, and `value`.
-      </p>
-      {err && <div className="text-red-500 text-sm font-bold">{err}</div>}
-      <textarea
-        className="w-full h-80 p-4 border rounded font-mono text-sm bg-gray-50 focus:bg-white transition-colors"
-        value={jsonText}
-        onChange={(e) => setJsonText(e.target.value)}
-      />
-      <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 disabled:opacity-50">
-         {saving ? "Saving..." : "Save JSON"}
-      </button>
+      {contacts.map((contact, idx) => (
+        <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-stretch bg-gray-50 p-4 rounded-xl border border-gray-200">
+          <div className="flex-shrink-0">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Icon</label>
+            <input 
+              placeholder="Emoji" 
+              value={contact.icon} 
+              onChange={(e) => updateContact(idx, "icon", e.target.value)} 
+              className="w-14 border border-gray-300 rounded-md px-2 py-2 text-center text-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" 
+              title="Emoji or icon"
+            />
+          </div>
+          <div className="w-full sm:w-1/3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Label</label>
+            <input 
+              placeholder="e.g. Phone" 
+              value={contact.label} 
+              onChange={(e) => updateContact(idx, "label", e.target.value)} 
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium" 
+            />
+          </div>
+          <div className="w-full sm:flex-1">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Value</label>
+            <textarea 
+              placeholder="Enter contact detail..." 
+              value={contact.value} 
+              onChange={(e) => updateContact(idx, "value", e.target.value)} 
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-h-[42px]" 
+              rows={2}
+            />
+          </div>
+          <div className="flex justify-end w-full sm:w-auto sm:self-center mt-2 sm:mt-5">
+            <button onClick={() => removeContact(idx)} className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors" title="Remove Contact">
+              <span className="text-2xl leading-none">&times;</span>
+            </button>
+          </div>
+        </div>
+      ))}
+      
+      <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 mt-6">
+        <button onClick={addContact} className="bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-semibold transition-colors">
+          + Add Contact
+        </button>
+        <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 text-sm font-semibold transition-colors flex items-center gap-2">
+          {saving ? "Saving..." : "Save Contacts"}
+        </button>
+      </div>
     </div>
   );
 };
