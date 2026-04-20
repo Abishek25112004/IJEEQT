@@ -202,14 +202,14 @@ const Home = () => {
               <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
                 Indexing & Abstracting
               </h3>
-              {indexing.length > 4 && (
-                <button onClick={() => setShowAllIndexing(true)} className="text-blue-600 text-xs hover:underline">
-                  View All
+              {indexing.length > 0 && (
+                <button onClick={() => setShowAllIndexing(true)} className="text-blue-600 text-xs font-semibold hover:underline bg-blue-50 px-2 py-1 rounded">
+                  View All →
                 </button>
               )}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {indexing.slice(0, 4).map((idx) => (
+              {indexing.slice(0, 6).map((idx) => (
                 <div key={idx} className="bg-gray-50 border border-gray-200 rounded text-xs text-center py-2 font-medium text-gray-700">
                   {idx}
                 </div>
