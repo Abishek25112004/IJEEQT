@@ -9,6 +9,10 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   
   // Dynamic Content States
+  const [statsData, setStatsData] = useState({
+    publishedCount: 0,
+    editorialCount: 0,
+  });
   const [cfp, setCfp] = useState({
     volume: "12", issue: "2",
     submissionDeadline: "March 31, 2025",
@@ -22,22 +26,37 @@ const Home = () => {
   const [showAllIndexing, setShowAllIndexing] = useState(false);
 
   useEffect(() => {
-    papersAPI.getPublished({ limit: 6 })
-      .then((res) => setLatestPapers(res.papers || []))
+    papersAPI.getPublished()
+      .then((res) => {
+        const papers = res.papers || [];
+        setStatsData((prev) => ({ ...prev, publishedCount: papers.length }));
+        setLatestPapers(papers.slice(0, 6)); // Display latest 6
+      })
       .catch(() => setLatestPapers([]))
       .finally(() => setLoading(false));
 
     // Fetch dynamic content
     contentAPI.getContent("call_for_papers").then((res) => setCfp(res.value)).catch(() => {});
-    contentAPI.getContent("indexing_abstracting").then((res) => setIndexing(res.value)).catch(() => {});
+    contentAPI.getContent("indexing_abstracting").then((res) => {
+      if (res.value && res.value.length > 0) setIndexing(res.value);
+    }).catch(() => {});
+    contentAPI.getContent("editorial_board").then((res) => {
+      if (res.value) {
+        let count = 0;
+        Object.values(res.value).forEach((members) => {
+          if (Array.isArray(members)) count += members.length;
+        });
+        setStatsData((prev) => ({ ...prev, editorialCount: count }));
+      }
+    }).catch(() => {});
   }, []);
 
   const journalName = process.env.REACT_APP_JOURNAL_NAME || "International Journal of Engineering Excellence In Quantum Technologies";
   const abbr = process.env.REACT_APP_JOURNAL_ABBR || "IJEEQT";
 
   const stats = [
-    { value: "500+", label: "Published Articles" },
-    { value: "50+", label: "Editorial Board" },
+    { value: statsData.publishedCount.toString(), label: "Published Articles" },
+    { value: statsData.editorialCount.toString(), label: "Editorial Board" },
     { value: "4.52", label: "Impact Factor" },
     { value: "120+", label: "Countries Reached" },
   ];
