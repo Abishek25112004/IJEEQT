@@ -1,10 +1,22 @@
 // src/components/layout/Footer.js
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { contentAPI } from "../../services/api";
 
 const Footer = () => {
   const journalName = process.env.REACT_APP_JOURNAL_NAME || "International Journal of Engineering Excellence in Quantum Technology";
   const abbr = process.env.REACT_APP_JOURNAL_ABBR || "IJEEQT";
+
+  const [indexing, setIndexing] = useState([
+    "Scopus", "Web of Science", "DOAJ", "CrossRef", "Google Scholar"
+  ]);
+  const [showAllIndexing, setShowAllIndexing] = useState(false);
+
+  useEffect(() => {
+    contentAPI.getContent("indexing_abstracting").then((res) => {
+      if (res.value && res.value.length > 0) setIndexing(res.value);
+    }).catch(() => {});
+  }, []);
 
   return (
     <footer className="bg-gray-900 text-gray-300 mt-16">
@@ -71,9 +83,16 @@ const Footer = () => {
 
             {/* Indexing */}
             <div className="mt-6">
-              <h4 className="text-white font-semibold text-xs mb-2 uppercase tracking-wider">Indexed In</h4>
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-white font-semibold text-xs uppercase tracking-wider">Indexed In</h4>
+                {indexing.length > 4 && (
+                  <button onClick={() => setShowAllIndexing(true)} className="text-blue-400 text-xs hover:underline">
+                    View All
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
-                {["Scopus", "WoS", "DOAJ", "CrossRef", "Google Scholar"].map((idx) => (
+                {indexing.slice(0, 4).map((idx) => (
                   <span key={idx} className="bg-gray-800 text-gray-400 text-xs px-2 py-1 rounded">
                     {idx}
                   </span>
@@ -93,6 +112,27 @@ const Footer = () => {
           </p>
         </div>
       </div>
+
+      {/* View All Indexing Modal */}
+      {showAllIndexing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center p-5 border-b">
+              <h3 className="font-bold text-lg text-gray-900">Indexing & Abstracting ({indexing.length})</h3>
+              <button onClick={() => setShowAllIndexing(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <div className="flex flex-wrap gap-2">
+                {indexing.map((idx, i) => (
+                  <div key={i} className="bg-blue-50 border border-blue-100 text-blue-800 rounded px-3 py-1.5 text-sm font-medium">
+                    {idx}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 };

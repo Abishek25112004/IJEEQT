@@ -158,7 +158,7 @@ const IndexingForm = ({ data, onSave, saving }) => {
       </div>
       <div className="flex gap-2 max-w-sm">
         <input value={newItem} onChange={(e) => setNewItem(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} placeholder="Add new index name..." className="flex-1 border rounded px-3 py-2 text-sm" />
-        <button onClick={handleAdd} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">+</button>
+        <button onClick={handleAdd} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Add</button>
       </div>
       <button onClick={() => onSave(items)} disabled={saving} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 disabled:opacity-50">
         {saving ? "Saving..." : "Save Changes"}
