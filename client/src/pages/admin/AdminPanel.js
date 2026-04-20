@@ -346,7 +346,7 @@ const AdminPanel = () => {
               <div className="space-y-4">
                 <SearchBar value={userSearch} onChange={setUserSearch} placeholder="Search by name, email, or role…" />
                 <div className="text-xs text-gray-400">{filteredUsers.length} of {users.length} users</div>
-                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <div className="rounded-lg border border-gray-200">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b">
                       <tr>
