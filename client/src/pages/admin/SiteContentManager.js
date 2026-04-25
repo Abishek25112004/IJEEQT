@@ -114,14 +114,41 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
     reviewNotification: "Within 4–6 weeks",
     publication: "June 2025",
     apc: "₹5,000 / $60 USD",
+    announcementTitle: "📢 Submissions Now Open",
+    announcementText: "IJEEQT invites original research manuscripts for Volume 12, Issue 2. All accepted papers will be published online immediately upon acceptance.",
+    importantDates: [
+      { event: "Submission Portal Opens", date: "January 1, 2025", done: true },
+      { event: "Full Paper Submission Deadline", date: "March 31, 2025", done: false },
+      { event: "Review Notification", date: "May 15, 2025", done: false },
+      { event: "Revised Manuscript Due", date: "June 1, 2025", done: false },
+      { event: "Final Acceptance Notification", date: "June 10, 2025", done: false },
+      { event: "Publication Date", date: "June 30, 2025", done: false },
+    ],
     ...data,
   });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const addImportantDate = () => {
+    setForm({ ...form, importantDates: [...form.importantDates, { event: "New Event", date: "", done: false }] });
+  };
+
+  const updateImportantDate = (idx, field, value) => {
+    const newDates = [...form.importantDates];
+    newDates[idx][field] = value;
+    setForm({ ...form, importantDates: newDates });
+  };
+
+  const removeImportantDate = (idx) => {
+    const newDates = [...form.importantDates];
+    newDates.splice(idx, 1);
+    setForm({ ...form, importantDates: newDates });
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <div className="grid sm:grid-cols-2 gap-4 p-4 border border-gray-200 bg-gray-50 rounded-xl">
+        <h4 className="sm:col-span-2 font-bold text-gray-800">Basic Information</h4>
         <div><label className="block text-sm font-medium mb-1">Volume</label><input name="volume" value={form.volume} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Issue</label><input name="issue" value={form.issue} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><input name="submissionDeadline" value={form.submissionDeadline} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
@@ -129,7 +156,40 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
         <div><label className="block text-sm font-medium mb-1">Publication Date</label><input name="publication" value={form.publication} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">APC (Processing Charges)</label><input name="apc" value={form.apc} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
       </div>
-      <button onClick={() => onSave(form)} disabled={saving} className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 disabled:opacity-50">
+
+      <div className="p-4 border border-gray-200 rounded-xl space-y-4">
+        <h4 className="font-bold text-gray-800">Announcement Banner</h4>
+        <div><label className="block text-sm font-medium mb-1">Title</label><input name="announcementTitle" value={form.announcementTitle} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
+        <div><label className="block text-sm font-medium mb-1">Text</label><textarea name="announcementText" value={form.announcementText} onChange={handleChange} rows="2" className="w-full border rounded px-3 py-2" /></div>
+      </div>
+
+      <div className="p-4 border border-gray-200 rounded-xl space-y-4 bg-gray-50/50">
+        <h4 className="font-bold text-gray-800">Important Dates List</h4>
+        {form.importantDates?.map((d, idx) => (
+          <div key={idx} className="flex flex-col sm:flex-row gap-3 bg-white p-3 rounded border shadow-sm items-start sm:items-center">
+            <div className="w-full sm:w-1/2">
+              <label className="block text-xs text-gray-500 mb-1">Event Name</label>
+              <input value={d.event} onChange={(e) => updateImportantDate(idx, "event", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+            </div>
+            <div className="w-full sm:w-1/3">
+              <label className="block text-xs text-gray-500 mb-1">Date</label>
+              <input value={d.date} onChange={(e) => updateImportantDate(idx, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+            </div>
+            <div className="flex items-center mt-2 sm:mt-5">
+              <label className="flex items-center text-sm mr-4 cursor-pointer">
+                <input type="checkbox" checked={d.done} onChange={(e) => updateImportantDate(idx, "done", e.target.checked)} className="mr-2" />
+                Done
+              </label>
+              <button onClick={() => removeImportantDate(idx)} className="text-red-500 hover:text-red-700 font-bold ml-auto">&times;</button>
+            </div>
+          </div>
+        ))}
+        <button onClick={addImportantDate} className="text-blue-600 border border-blue-200 hover:bg-blue-50 px-4 py-2 rounded text-sm font-medium">
+          + Add Date
+        </button>
+      </div>
+
+      <button onClick={() => onSave(form)} disabled={saving} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 font-medium">
         {saving ? "Saving..." : "Save Changes"}
       </button>
     </div>

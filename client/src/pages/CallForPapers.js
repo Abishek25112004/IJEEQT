@@ -1,43 +1,66 @@
 // src/pages/CallForPapers.js
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PageHero, Card } from "../components/common";
+import { PageHero, Card, Spinner } from "../components/common";
+import { contentAPI } from "../services/api";
 
-const CallForPapers = () => (
-  <div>
-    <PageHero title="Call for Papers" subtitle="Volume 12, Issue 2 — June 2025" breadcrumb="Home / Call for Papers" />
-    <div className="max-w-4xl mx-auto px-4 py-12 space-y-6">
+const CallForPapers = () => {
+  const [cfp, setCfp] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-      {/* Announcement banner */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-5 rounded-r-lg">
-        <p className="font-bold text-yellow-800 text-sm">📢 Submissions Now Open</p>
-        <p className="text-yellow-700 text-sm mt-1">
-          IJEEQT invites original research manuscripts for Volume 12, Issue 2. All accepted papers
-          will be published online immediately upon acceptance.
-        </p>
-      </div>
+  useEffect(() => {
+    contentAPI.getContent("call_for_papers")
+      .then((res) => {
+        if (res.value) {
+          setCfp(res.value);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch CFP content:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
-      {/* Important Dates */}
-      <Card className="p-5">
-        <h2 className="text-base font-bold text-blue-800 mb-4">Important Dates</h2>
-        <div className="space-y-3">
-          {[
-            { event: "Submission Portal Opens", date: "January 1, 2025", done: true },
-            { event: "Full Paper Submission Deadline", date: "March 31, 2025", done: false },
-            { event: "Review Notification", date: "May 15, 2025", done: false },
-            { event: "Revised Manuscript Due", date: "June 1, 2025", done: false },
-            { event: "Final Acceptance Notification", date: "June 10, 2025", done: false },
-            { event: "Publication Date", date: "June 30, 2025", done: false },
-          ].map((d) => (
-            <div key={d.event} className="flex justify-between items-center border-b border-gray-100 pb-3 last:border-0">
-              <span className={`text-sm flex items-center gap-2 ${d.done ? "text-gray-400 line-through" : "text-gray-700"}`}>
-                {d.done ? "✅" : "🔹"} {d.event}
-              </span>
-              <span className={`text-sm font-semibold ${d.done ? "text-gray-400" : "text-blue-700"}`}>{d.date}</span>
+  const title = cfp?.announcementTitle || "📢 Submissions Now Open";
+  const text = cfp?.announcementText || "IJEEQT invites original research manuscripts for Volume 12, Issue 2. All accepted papers will be published online immediately upon acceptance.";
+  const importantDates = cfp?.importantDates || [
+    { event: "Submission Portal Opens", date: "January 1, 2025", done: true },
+    { event: "Full Paper Submission Deadline", date: "March 31, 2025", done: false },
+    { event: "Review Notification", date: "May 15, 2025", done: false },
+    { event: "Revised Manuscript Due", date: "June 1, 2025", done: false },
+    { event: "Final Acceptance Notification", date: "June 10, 2025", done: false },
+    { event: "Publication Date", date: "June 30, 2025", done: false },
+  ];
+
+  return (
+    <div>
+      <PageHero title="Call for Papers" subtitle={`Volume ${cfp?.volume || "12"}, Issue ${cfp?.issue || "2"}`} breadcrumb="Home / Call for Papers" />
+      <div className="max-w-4xl mx-auto px-4 py-12 space-y-6">
+
+        {loading ? (
+          <Spinner center />
+        ) : (
+          <>
+            {/* Announcement banner */}
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-5 rounded-r-lg">
+              <p className="font-bold text-yellow-800 text-sm">{title}</p>
+              <p className="text-yellow-700 text-sm mt-1">{text}</p>
             </div>
-          ))}
-        </div>
-      </Card>
+
+            {/* Important Dates */}
+            <Card className="p-5">
+              <h2 className="text-base font-bold text-blue-800 mb-4">Important Dates</h2>
+              <div className="space-y-3">
+                {importantDates.map((d, index) => (
+                  <div key={index} className="flex justify-between items-center border-b border-gray-100 pb-3 last:border-0">
+                    <span className={`text-sm flex items-center gap-2 ${d.done ? "text-gray-400 line-through" : "text-gray-700"}`}>
+                      {d.done ? "✅" : "🔹"} {d.event}
+                    </span>
+                    <span className={`text-sm font-semibold ${d.done ? "text-gray-400" : "text-blue-700"}`}>{d.date}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
 
       {/* Topics */}
       <Card className="p-5">
@@ -84,6 +107,7 @@ const CallForPapers = () => (
       </Card>
     </div>
   </div>
-);
+  );
+};
 
 export default CallForPapers;
