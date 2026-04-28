@@ -139,6 +139,8 @@ const AdminPanel = () => {
   const [paperSearch, setPaperSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [paperStatusFilter, setPaperStatusFilter] = useState("all");
+  const [reviewerSearch, setReviewerSearch] = useState("");
+  const [expandedReviewerId, setExpandedReviewerId] = useState(null);
 
   const isAdmin = profile?.roles?.includes("admin") || profile?.role === "admin";
 
@@ -232,6 +234,19 @@ const AdminPanel = () => {
       )
     );
   }, [users, userSearch, tokenMatch]);
+
+  const filteredReviewerProfiles = useMemo(() => {
+    if (!reviewerSearch.trim()) return reviewerProfiles;
+    return reviewerProfiles.filter((rp) =>
+      tokenMatch(
+        reviewerSearch,
+        rp.user?.name || "",
+        rp.user?.email || "",
+        rp.university || "",
+        rp.specialization || ""
+      )
+    );
+  }, [reviewerProfiles, reviewerSearch, tokenMatch]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleStatusUpdate = async (paperId, status, extra = {}) => {
@@ -504,8 +519,9 @@ const AdminPanel = () => {
             {/* ── Reviewers Tab ── */}
             {activeTab === "reviewers" && (
               <div className="space-y-4">
-                <div className="text-xs text-gray-400 mb-2">{reviewerProfiles.length} reviewer profile(s)</div>
-                {reviewerProfiles.length > 0 ? (
+                <SearchBar value={reviewerSearch} onChange={setReviewerSearch} placeholder="Search by name, email, university, or specialization…" />
+                <div className="text-xs text-gray-400 mb-2">{filteredReviewerProfiles.length} of {reviewerProfiles.length} reviewer profile(s)</div>
+                {filteredReviewerProfiles.length > 0 ? (
                   <div className="rounded-lg border border-gray-200">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b">
@@ -516,65 +532,86 @@ const AdminPanel = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {reviewerProfiles.map((rp) => (
-                          <tr key={rp.uid} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 font-medium text-gray-900">{rp.user?.name || "—"}</td>
-                            <td className="px-4 py-3 text-gray-600">{rp.user?.email || "—"}</td>
-                            <td className="px-4 py-3 text-gray-600">{rp.phone || "—"}</td>
-                            <td className="px-4 py-3 text-gray-600">{rp.university || "—"}</td>
-                            <td className="px-4 py-3 text-gray-600">{rp.specialization || "—"}</td>
-                            <td className="px-4 py-3">
-                              {rp.hasExperience ? (
-                                <span className="text-green-700 text-xs font-medium" title={rp.experienceDetails || ""}>✓ Yes</span>
-                              ) : (
-                                <span className="text-gray-400 text-xs">No</span>
+                        {filteredReviewerProfiles.map((rp) => {
+                          const isExpanded = expandedReviewerId === rp.uid;
+                          const assignments = reviewAssignments.filter((a) => a.reviewerId === rp.uid);
+                          
+                          return (
+                            <React.Fragment key={rp.uid}>
+                              <tr 
+                                onClick={() => setExpandedReviewerId(isExpanded ? null : rp.uid)}
+                                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                              >
+                                <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
+                                  <span className="text-gray-400 text-[10px]">
+                                    {isExpanded ? "▼" : "▶"}
+                                  </span>
+                                  {rp.user?.name || "—"}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">{rp.user?.email || "—"}</td>
+                                <td className="px-4 py-3 text-gray-600">{rp.phone || "—"}</td>
+                                <td className="px-4 py-3 text-gray-600">{rp.university || "—"}</td>
+                                <td className="px-4 py-3 text-gray-600">{rp.specialization || "—"}</td>
+                                <td className="px-4 py-3">
+                                  {rp.hasExperience ? (
+                                    <span className="text-green-700 text-xs font-medium" title={rp.experienceDetails || ""}>✓ Yes</span>
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">No</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-gray-400 text-xs">
+                                  {rp.completedAt ? new Date(rp.completedAt).toLocaleDateString() : "—"}
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr className="bg-gray-50/50">
+                                  <td colSpan="7" className="p-0 border-t border-gray-100">
+                                    <div className="px-10 py-4">
+                                      <h4 className="text-xs font-bold text-gray-600 uppercase mb-2">Paper Assignments ({assignments.length})</h4>
+                                      {assignments.length > 0 ? (
+                                        <div className="border border-gray-200 rounded-md overflow-hidden bg-white">
+                                          <table className="w-full text-xs">
+                                            <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
+                                              <tr>
+                                                <th className="text-left px-3 py-2 font-semibold">Paper Title</th>
+                                                <th className="text-left px-3 py-2 font-semibold">Status</th>
+                                                <th className="text-left px-3 py-2 font-semibold">Assigned</th>
+                                                <th className="text-left px-3 py-2 font-semibold">Responded</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                              {assignments.map(a => (
+                                                <tr key={a.id}>
+                                                  <td className="px-3 py-2 font-medium text-gray-800">{a.paper?.title || "—"}</td>
+                                                  <td className="px-3 py-2">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium capitalize ${
+                                                      a.status === "accepted" ? "bg-green-100 text-green-800" :
+                                                      a.status === "declined" ? "bg-red-100 text-red-800" :
+                                                      "bg-yellow-100 text-yellow-800"
+                                                    }`}>{a.status}</span>
+                                                  </td>
+                                                  <td className="px-3 py-2 text-gray-500">{new Date(a.assignedAt).toLocaleDateString()}</td>
+                                                  <td className="px-3 py-2 text-gray-500">{a.respondedAt ? new Date(a.respondedAt).toLocaleDateString() : "—"}</td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs text-gray-400 bg-white p-3 border border-gray-200 rounded-md">No papers assigned to this reviewer yet.</p>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
                               )}
-                            </td>
-                            <td className="px-4 py-3 text-gray-400 text-xs">
-                              {rp.completedAt ? new Date(rp.completedAt).toLocaleDateString() : "—"}
-                            </td>
-                          </tr>
-                        ))}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <EmptyState title="No reviewer profiles" message="Reviewer profiles will appear here once reviewers complete their onboarding." />
-                )}
-
-                {/* Assignment statuses */}
-                {reviewAssignments.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-3">Assignment Statuses</h3>
-                    <div className="rounded-lg border border-gray-200">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b">
-                          <tr>
-                            {["Paper", "Reviewer", "Status", "Assigned", "Responded"].map((h) => (
-                              <th key={h} className="text-left px-4 py-3 font-semibold">{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {reviewAssignments.map((ra) => (
-                            <tr key={ra.id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{ra.paper?.title || "—"}</td>
-                              <td className="px-4 py-3 text-gray-600">{ra.reviewer?.name || "—"}</td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                                  ra.status === "accepted" ? "bg-green-100 text-green-800" :
-                                  ra.status === "declined" ? "bg-red-100 text-red-800" :
-                                  "bg-yellow-100 text-yellow-800"
-                                }`}>{ra.status}</span>
-                              </td>
-                              <td className="px-4 py-3 text-gray-400 text-xs">{new Date(ra.assignedAt).toLocaleDateString()}</td>
-                              <td className="px-4 py-3 text-gray-400 text-xs">{ra.respondedAt ? new Date(ra.respondedAt).toLocaleDateString() : "—"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                  <EmptyState title="No reviewer profiles" message={reviewerSearch ? "No profiles match your search." : "Reviewer profiles will appear here once reviewers complete their onboarding."} />
                 )}
               </div>
             )}
