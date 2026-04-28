@@ -91,50 +91,62 @@ export const SectionTitle = ({ title, subtitle }) => (
 );
 
 // ─── Paper Card ────────────────────────────────────────────────────────────────
-export const PaperCard = ({ paper, showStatus = false }) => (
-  <Card className="p-4" hover>
-    <div className="flex justify-between items-start gap-3">
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-gray-900 text-sm leading-snug hover:text-blue-700 transition-colors">
-          {paper.title}
-        </h3>
-        <p className="text-xs text-gray-500 mt-1">{paper.authorName}</p>
-        {paper.keywords?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {paper.keywords.slice(0, 5).map((kw, i) => (
-              <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{kw}</span>
-            ))}
+export const PaperCard = ({ paper, showStatus = false }) => {
+  const [expanded, setExpanded] = React.useState(false);
+
+  return (
+    <Card className="p-4" hover>
+      <div className="flex justify-between items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-sm leading-snug hover:text-blue-700 transition-colors">
+            {paper.title}
+          </h3>
+          <p className="text-xs text-gray-500 mt-1">{paper.authorName}</p>
+          {paper.keywords?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {paper.keywords.slice(0, 5).map((kw, i) => (
+                <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{kw}</span>
+              ))}
+            </div>
+          )}
+        </div>
+        {showStatus && (
+          <div className="shrink-0">
+            <StatusBadge status={paper.status} />
           </div>
         )}
       </div>
-      {showStatus && (
-        <div className="shrink-0">
-          <StatusBadge status={paper.status} />
+      {paper.abstract && (
+        <div className="mt-3">
+          <p className={`text-xs text-gray-600 leading-relaxed ${expanded ? "" : "line-clamp-3"}`}>{paper.abstract}</p>
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 hover:underline"
+          >
+            {expanded ? "Hide ▲" : "View ▼"}
+          </button>
         </div>
       )}
-    </div>
-    {paper.abstract && (
-      <p className="text-xs text-gray-600 mt-3 leading-relaxed line-clamp-3">{paper.abstract}</p>
-    )}
-    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-      <span className="text-xs text-gray-400">
-        {paper.submittedAt ? new Date(paper.submittedAt).toLocaleDateString() : ""}
-        {paper.volume && ` · Vol. ${paper.volume}, Issue ${paper.issue}`}
-      </span>
-      {paper.fileUrl && (
-        <a
-          href={paper.fileUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-          onClick={(e) => e.stopPropagation()}
-        >
-          📄 PDF
-        </a>
-      )}
-    </div>
-  </Card>
-);
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+        <span className="text-xs text-gray-400">
+          {paper.submittedAt ? new Date(paper.submittedAt).toLocaleDateString() : ""}
+          {paper.volume && ` · Vol. ${paper.volume}, Issue ${paper.issue}`}
+        </span>
+        {paper.fileUrl && (
+          <a
+            href={paper.fileUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            📄 PDF
+          </a>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 // ─── Empty State ────────────────────────────────────────────────────────────────
 export const EmptyState = ({ title, message, action }) => (

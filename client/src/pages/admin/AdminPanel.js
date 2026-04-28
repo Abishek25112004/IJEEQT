@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+
 import { useLocation } from "react-router-dom";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -162,31 +163,58 @@ const AdminPanel = () => {
 
   useEffect(() => { load(); }, []);
 
-  // ── Filtered lists (client-side search, partial match) ────────────────────
+  // ── Normalize: lowercase, strip diacritics, normalize unicode, strip punctuation ──
+  const normalize = useCallback((str) => {
+    if (!str) return "";
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u2018\u2019\u0060\u00B4]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/[\u00A0]/g, " ")
+      .toLowerCase();
+  }, []);
+
+  // Strip all punctuation for token matching
+  const stripPunctuation = useCallback((str) => {
+    return str.replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+  }, []);
+
+  // Token-based search: every word the user types must appear somewhere in the text
+  const tokenMatch = useCallback((query, ...fields) => {
+    const combined = stripPunctuation(normalize(fields.join(" ")));
+    const tokens = stripPunctuation(normalize(query)).split(" ").filter(Boolean);
+    return tokens.every((token) => combined.includes(token));
+  }, [normalize, stripPunctuation]);
+
+  // ── Filtered lists (client-side search, token match) ──────────────────────
   const filteredPapers = useMemo(() => {
     if (!paperSearch.trim()) return papers;
-    const q = paperSearch.toLowerCase();
-    return papers.filter(
-      (p) =>
-        p.title?.toLowerCase().includes(q) ||
-        p.authorName?.toLowerCase().includes(q) ||
-        p.authorEmail?.toLowerCase().includes(q) ||
-        p.status?.toLowerCase().includes(q) ||
-        p.keywords?.some((k) => k.toLowerCase().includes(q))
+    return papers.filter((p) =>
+      tokenMatch(
+        paperSearch,
+        p.title || "",
+        p.authorName || "",
+        p.authorEmail || "",
+        p.status || "",
+        ...(p.keywords || [])
+      )
     );
-  }, [papers, paperSearch]);
+  }, [papers, paperSearch, tokenMatch]);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return users;
-    const q = userSearch.toLowerCase();
-    return users.filter(
-      (u) =>
-        u.name?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.roles?.some((r) => r.toLowerCase().includes(q)) ||
-        u.role?.toLowerCase().includes(q)
+    return users.filter((u) =>
+      tokenMatch(
+        userSearch,
+        u.name || "",
+        u.email || "",
+        ...(u.roles || []),
+        u.role || ""
+      )
     );
-  }, [users, userSearch]);
+  }, [users, userSearch, tokenMatch]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleStatusUpdate = async (paperId, status, extra = {}) => {

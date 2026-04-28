@@ -1,5 +1,5 @@
 // src/pages/Dashboard.js
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { papersAPI, paymentsAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -42,18 +42,44 @@ const Dashboard = () => {
     return acc;
   }, {});
 
-  // Client-side search for papers (partial match)
+  // Normalize: lowercase, strip diacritics, normalize unicode
+  const normalize = useCallback((str) => {
+    if (!str) return "";
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u2018\u2019\u0060\u00B4]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/[\u00A0]/g, " ")
+      .toLowerCase();
+  }, []);
+
+  // Strip all punctuation for token matching
+  const stripPunctuation = useCallback((str) => {
+    return str.replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+  }, []);
+
+  // Token-based search: every word the user types must appear somewhere in the text
+  const tokenMatch = useCallback((query, ...fields) => {
+    const combined = stripPunctuation(normalize(fields.join(" ")));
+    const tokens = stripPunctuation(normalize(query)).split(" ").filter(Boolean);
+    return tokens.every((token) => combined.includes(token));
+  }, [normalize, stripPunctuation]);
+
+  // Client-side search for papers (token match)
   const filteredPapers = useMemo(() => {
     if (!paperSearch.trim()) return papers;
-    const q = paperSearch.toLowerCase();
-    return papers.filter(
-      (p) =>
-        p.title?.toLowerCase().includes(q) ||
-        p.status?.toLowerCase().includes(q) ||
-        p.keywords?.some((k) => k.toLowerCase().includes(q)) ||
-        p.abstract?.toLowerCase().includes(q)
+    return papers.filter((p) =>
+      tokenMatch(
+        paperSearch,
+        p.title || "",
+        p.status || "",
+        ...(p.keywords || []),
+        p.abstract || ""
+      )
     );
-  }, [papers, paperSearch]);
+  }, [papers, paperSearch, tokenMatch]);
 
   const handlePayment = async (paper) => {
     try {
