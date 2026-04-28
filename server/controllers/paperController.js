@@ -225,6 +225,7 @@ const updatePaperStatus = async (req, res) => {
 /**
  * PATCH /api/papers/:id/assign-reviewer
  * Assign a reviewer to a paper — admin/editor only
+ * Also creates a ReviewAssignment record and sends email notification
  */
 const assignReviewer = async (req, res) => {
   try {
@@ -264,6 +265,21 @@ const assignReviewer = async (req, res) => {
         status: "under_review"
       }
     });
+
+    // Create ReviewAssignment record (upsert to avoid duplicates)
+    await prisma.reviewAssignment.upsert({
+      where: { paperId_reviewerId: { paperId: id, reviewerId } },
+      update: {}, // don't change if already exists
+      create: {
+        paperId: id,
+        reviewerId,
+        status: "pending",
+      },
+    });
+
+    // Send email notification to reviewer
+    const { notifyReviewerAssigned } = require("../utils/mailer");
+    notifyReviewerAssigned(reviewer.email, reviewer.name, paper.title).catch(() => {});
 
     res.json({ message: "Reviewer assigned successfully" });
   } catch (error) {

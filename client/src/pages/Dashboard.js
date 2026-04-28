@@ -127,6 +127,11 @@ const Dashboard = () => {
     profile?.roles?.some((r) => ["admin", "manager"].includes(r)) ||
     ["admin", "manager"].includes(profile?.role);
 
+  // Show reviewer panel link for reviewers, editors, admins
+  const showReviewerLink =
+    profile?.roles?.some((r) => ["reviewer", "editor", "admin"].includes(r)) ||
+    ["reviewer", "editor", "admin"].includes(profile?.role);
+
   return (
     <div>
       <PageHero
@@ -164,6 +169,11 @@ const Dashboard = () => {
           {showContentLink && (
             <Link to="/site-content" className="bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-800 transition font-medium">
               Manage Site Content
+            </Link>
+          )}
+          {showReviewerLink && (
+            <Link to="/reviewer" className="bg-purple-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-800 transition font-medium">
+              📝 Reviewer Panel
             </Link>
           )}
         </div>

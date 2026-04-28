@@ -69,11 +69,24 @@ export const reviewsAPI = {
     api.patch(`/reviews/${id}/visibility`, { isVisible }),
 };
 
+// ─── Reviewer Panel ───────────────────────────────────────────────────────────
+export const reviewerAPI = {
+  getProfile: () => api.get("/reviewer/profile"),
+  saveProfile: (data) => api.post("/reviewer/profile", data),
+  getAssignments: () => api.get("/reviewer/assignments"),
+  respondToAssignment: (id, status) => api.patch(`/reviewer/assignments/${id}`, { status }),
+  submitReview: (data) => api.post("/reviewer/review", data),
+  getMyReviews: () => api.get("/reviewer/reviews"),
+};
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 export const adminAPI = {
   getStats: () => api.get("/admin/stats"),
   getUsers: () => api.get("/admin/users"),
   getReviewers: () => api.get("/admin/reviewers"),
+  getReviewerProfiles: () => api.get("/admin/reviewer-profiles"),
+  getReviewAssignments: () => api.get("/admin/review-assignments"),
+  getSubmittedReviews: () => api.get("/admin/submitted-reviews"),
   updateUserRole: (uid, roles) => api.patch(`/admin/users/${uid}/role`, { roles }),
   deleteUser: (uid) => api.delete(`/admin/users/${uid}`),
 };

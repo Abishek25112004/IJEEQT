@@ -1,5 +1,5 @@
 // controllers/adminController.js
-// Admin-only operations: user management, statistics
+// Admin-only operations: user management, statistics, reviewer oversight
 // Supports multi-role system (roles[] array) with backward compatibility
 
 const { auth } = require("../config/firebase");
@@ -100,10 +100,11 @@ const deleteUser = async (req, res) => {
  */
 const getDashboardStats = async (req, res) => {
   try {
-    const [papers, users, reviewsCount] = await Promise.all([
+    const [papers, users, reviewsCount, assignmentsCount] = await Promise.all([
       prisma.paper.findMany({ select: { status: true } }),
       prisma.user.findMany({ select: { roles: true } }),
       prisma.review.count(),
+      prisma.reviewAssignment.count(),
     ]);
 
     const statusCounts = papers.reduce((acc, p) => {
@@ -123,6 +124,7 @@ const getDashboardStats = async (req, res) => {
       papers: { total: papers.length, byStatus: statusCounts },
       users: { total: users.length, byRole: roleCounts },
       reviews: { total: reviewsCount },
+      assignments: { total: assignmentsCount },
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
@@ -138,8 +140,6 @@ const getReviewers = async (req, res) => {
   try {
     const reviewerRoles = ["reviewer", "editor", "admin", "manager"];
 
-    // Prisma doesn't have an easy native "ARRAY && ARRAY" overlap for string[], 
-    // but in newer Prisma we can use hasSome.
     const allUsers = await prisma.user.findMany({
       where: {
         roles: {
@@ -163,4 +163,75 @@ const getReviewers = async (req, res) => {
   }
 };
 
-module.exports = { getAllUsers, updateUserRole, deleteUser, getDashboardStats, getReviewers };
+/**
+ * GET /api/admin/reviewer-profiles
+ * Get all reviewer profiles with user details (for admin/manager view)
+ */
+const getReviewerProfiles = async (req, res) => {
+  try {
+    const profiles = await prisma.reviewerProfile.findMany({
+      include: {
+        user: { select: { name: true, email: true, roles: true, createdAt: true } },
+      },
+      orderBy: { completedAt: "desc" },
+    });
+
+    res.json({ profiles });
+  } catch (error) {
+    console.error("Error fetching reviewer profiles:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/admin/review-assignments
+ * Get all review assignments with statuses (for admin/manager view)
+ */
+const getReviewAssignments = async (req, res) => {
+  try {
+    const assignments = await prisma.reviewAssignment.findMany({
+      include: {
+        paper: { select: { id: true, title: true, authorName: true, status: true } },
+        reviewer: { select: { uid: true, name: true, email: true } },
+      },
+      orderBy: { assignedAt: "desc" },
+    });
+
+    res.json({ assignments });
+  } catch (error) {
+    console.error("Error fetching review assignments:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/admin/submitted-reviews
+ * Get all submitted reviews for admin to see
+ */
+const getSubmittedReviews = async (req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      include: {
+        paper: { select: { id: true, title: true, authorName: true, status: true } },
+        reviewer: { select: { uid: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ reviews });
+  } catch (error) {
+    console.error("Error fetching submitted reviews:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+module.exports = {
+  getAllUsers,
+  updateUserRole,
+  deleteUser,
+  getDashboardStats,
+  getReviewers,
+  getReviewerProfiles,
+  getReviewAssignments,
+  getSubmittedReviews,
+};

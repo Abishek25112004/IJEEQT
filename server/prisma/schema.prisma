@@ -21,8 +21,10 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  papers    Paper[]
-  reviews   Review[]
+  papers           Paper[]
+  reviews          Review[]
+  reviewerProfile  ReviewerProfile?
+  assignments      ReviewAssignment[]
 }
 
 model Paper {
@@ -58,20 +60,54 @@ model Paper {
   
   reviews        Review[]
   payments       Payment[]
+  assignments    ReviewAssignment[]
 }
 
 model Review {
-  id          String   @id @default(uuid())
+  id              String   @id @default(uuid())
+  paperId         String
+  paper           Paper    @relation(fields: [paperId], references: [id])
+  
+  reviewerId      String
+  reviewer        User     @relation(fields: [reviewerId], references: [uid])
+  
+  // Structured review fields
+  positives       String?   // What's good about the paper
+  negatives       String?   // What needs improvement
+  corrections     String?   // Specific things author must fix before publishing
+  suggestions     String?   // General suggestions for improvement
+  decision        String    // accept | reject | minor_revision | major_revision
+  confidenceLevel String?   // high | medium | low
+  overallComments String?   // Any additional remarks
+  
+  // Legacy field kept for backward compatibility
+  comments        String?
+  
+  createdAt       DateTime @default(now())
+}
+
+model ReviewerProfile {
+  uid               String   @id  // Same as User.uid
+  user              User     @relation(fields: [uid], references: [uid])
+  phone             String?
+  university        String?
+  specialization    String?
+  hasExperience     Boolean  @default(false)
+  experienceDetails String?  // Journal names, years of experience, etc.
+  completedAt       DateTime @default(now())
+}
+
+model ReviewAssignment {
+  id          String    @id @default(uuid())
   paperId     String
-  paper       Paper    @relation(fields: [paperId], references: [id])
-  
+  paper       Paper     @relation(fields: [paperId], references: [id])
   reviewerId  String
-  reviewer    User     @relation(fields: [reviewerId], references: [uid])
-  
-  comments    String?
-  decision    String
-  
-  createdAt   DateTime @default(now())
+  reviewer    User      @relation(fields: [reviewerId], references: [uid])
+  status      String    @default("pending")  // pending | accepted | declined
+  assignedAt  DateTime  @default(now())
+  respondedAt DateTime?
+
+  @@unique([paperId, reviewerId])
 }
 
 model Payment {

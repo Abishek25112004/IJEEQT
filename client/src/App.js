@@ -23,6 +23,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import AdminPanel from "./pages/admin/AdminPanel";
 import SiteContentPage from "./pages/admin/SiteContentPage";
+import ReviewerPanel from "./pages/ReviewerPanel";
 
 // Layout wrapper for pages with Navbar + Footer
 const Layout = ({ children }) => (
@@ -92,6 +93,18 @@ function App() {
               <Layout>
                 <ProtectedRoute requiredRole={["admin", "manager"]}>
                   <SiteContentPage />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+
+          {/* Reviewer Panel */}
+          <Route
+            path="/reviewer"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole={["reviewer", "editor", "admin"]}>
+                  <ReviewerPanel />
                 </ProtectedRoute>
               </Layout>
             }

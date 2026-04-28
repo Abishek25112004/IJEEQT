@@ -141,19 +141,31 @@ const AdminPanel = () => {
 
   const isAdmin = profile?.roles?.includes("admin") || profile?.role === "admin";
 
+  // Reviewer oversight state
+  const [reviewerProfiles, setReviewerProfiles] = useState([]);
+  const [reviewAssignments, setReviewAssignments] = useState([]);
+  const [submittedReviews, setSubmittedReviews] = useState([]);
+  const [expandedReviewId, setExpandedReviewId] = useState(null);
+
   const load = async () => {
     setLoading(true);
     try {
-      const [statsRes, papersRes, usersRes, reviewersRes] = await Promise.all([
+      const [statsRes, papersRes, usersRes, reviewersRes, profilesRes, assignRes, reviewsRes] = await Promise.all([
         adminAPI.getStats(),
         papersAPI.getAll(),
         adminAPI.getUsers(),
         adminAPI.getReviewers(),
+        adminAPI.getReviewerProfiles().catch(() => ({ profiles: [] })),
+        adminAPI.getReviewAssignments().catch(() => ({ assignments: [] })),
+        adminAPI.getSubmittedReviews().catch(() => ({ reviews: [] })),
       ]);
       setStats(statsRes);
       setPapers(papersRes.papers || []);
       setUsers(usersRes.users || []);
       setReviewers(reviewersRes.reviewers || []);
+      setReviewerProfiles(profilesRes.profiles || []);
+      setReviewAssignments(assignRes.assignments || []);
+      setSubmittedReviews(reviewsRes.reviews || []);
     } catch (e) {
       setErr("Failed to load admin data: " + e.message);
     } finally {
@@ -245,7 +257,7 @@ const AdminPanel = () => {
     } catch (e) { setErr(e.message); }
   };
 
-  const tabs = ["papers", "users", "stats"];
+  const tabs = ["papers", "users", "reviewers", "reviews", "stats"];
 
   return (
     <div>
@@ -414,6 +426,159 @@ const AdminPanel = () => {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* ── Reviewers Tab ── */}
+            {activeTab === "reviewers" && (
+              <div className="space-y-4">
+                <div className="text-xs text-gray-400 mb-2">{reviewerProfiles.length} reviewer profile(s)</div>
+                {reviewerProfiles.length > 0 ? (
+                  <div className="rounded-lg border border-gray-200">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b">
+                        <tr>
+                          {["Name", "Email", "Phone", "University", "Specialization", "Experience", "Joined"].map((h) => (
+                            <th key={h} className="text-left px-4 py-3 font-semibold">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {reviewerProfiles.map((rp) => (
+                          <tr key={rp.uid} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-medium text-gray-900">{rp.user?.name || "—"}</td>
+                            <td className="px-4 py-3 text-gray-600">{rp.user?.email || "—"}</td>
+                            <td className="px-4 py-3 text-gray-600">{rp.phone || "—"}</td>
+                            <td className="px-4 py-3 text-gray-600">{rp.university || "—"}</td>
+                            <td className="px-4 py-3 text-gray-600">{rp.specialization || "—"}</td>
+                            <td className="px-4 py-3">
+                              {rp.hasExperience ? (
+                                <span className="text-green-700 text-xs font-medium" title={rp.experienceDetails || ""}>✓ Yes</span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">No</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-gray-400 text-xs">
+                              {rp.completedAt ? new Date(rp.completedAt).toLocaleDateString() : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState title="No reviewer profiles" message="Reviewer profiles will appear here once reviewers complete their onboarding." />
+                )}
+
+                {/* Assignment statuses */}
+                {reviewAssignments.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-3">Assignment Statuses</h3>
+                    <div className="rounded-lg border border-gray-200">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b">
+                          <tr>
+                            {["Paper", "Reviewer", "Status", "Assigned", "Responded"].map((h) => (
+                              <th key={h} className="text-left px-4 py-3 font-semibold">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {reviewAssignments.map((ra) => (
+                            <tr key={ra.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{ra.paper?.title || "—"}</td>
+                              <td className="px-4 py-3 text-gray-600">{ra.reviewer?.name || "—"}</td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                                  ra.status === "accepted" ? "bg-green-100 text-green-800" :
+                                  ra.status === "declined" ? "bg-red-100 text-red-800" :
+                                  "bg-yellow-100 text-yellow-800"
+                                }`}>{ra.status}</span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-400 text-xs">{new Date(ra.assignedAt).toLocaleDateString()}</td>
+                              <td className="px-4 py-3 text-gray-400 text-xs">{ra.respondedAt ? new Date(ra.respondedAt).toLocaleDateString() : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Reviews Tab ── */}
+            {activeTab === "reviews" && (
+              <div className="space-y-4">
+                <div className="text-xs text-gray-400 mb-2">{submittedReviews.length} review(s) submitted</div>
+                {submittedReviews.length > 0 ? (
+                  submittedReviews.map((rv) => (
+                    <Card key={rv.id} className="p-5">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              rv.decision === "accept" ? "bg-green-100 text-green-800" :
+                              rv.decision === "reject" ? "bg-red-100 text-red-800" :
+                              rv.decision === "minor_revision" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-orange-100 text-orange-800"
+                            }`}>
+                              {rv.decision === "accept" ? "Accept" : rv.decision === "reject" ? "Reject" : rv.decision === "minor_revision" ? "Minor Revision" : "Major Revision"}
+                            </span>
+                            {rv.confidenceLevel && (
+                              <span className="text-xs text-gray-400">Confidence: {rv.confidenceLevel}</span>
+                            )}
+                          </div>
+                          <h3 className="font-semibold text-gray-900 text-sm mt-2">{rv.paper?.title || "—"}</h3>
+                          <p className="text-xs text-gray-500 mt-1">Reviewed by: {rv.reviewer?.name} ({rv.reviewer?.email}) · {new Date(rv.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <button
+                          onClick={() => setExpandedReviewId(expandedReviewId === rv.id ? null : rv.id)}
+                          className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded hover:bg-gray-200 font-medium shrink-0"
+                        >
+                          {expandedReviewId === rv.id ? "Hide Details" : "View Details"}
+                        </button>
+                      </div>
+
+                      {expandedReviewId === rv.id && (
+                        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                          {rv.positives && (
+                            <div className="bg-green-50 border-l-4 border-green-400 rounded-r p-3">
+                              <p className="text-xs font-semibold text-green-700 mb-1">✅ Positive Aspects</p>
+                              <p className="text-xs text-gray-700 whitespace-pre-wrap">{rv.positives}</p>
+                            </div>
+                          )}
+                          {rv.negatives && (
+                            <div className="bg-red-50 border-l-4 border-red-400 rounded-r p-3">
+                              <p className="text-xs font-semibold text-red-700 mb-1">❌ Weaknesses</p>
+                              <p className="text-xs text-gray-700 whitespace-pre-wrap">{rv.negatives}</p>
+                            </div>
+                          )}
+                          {rv.corrections && (
+                            <div className="bg-orange-50 border-l-4 border-orange-400 rounded-r p-3">
+                              <p className="text-xs font-semibold text-orange-700 mb-1">🔧 Corrections Required</p>
+                              <p className="text-xs text-gray-700 whitespace-pre-wrap">{rv.corrections}</p>
+                            </div>
+                          )}
+                          {rv.suggestions && (
+                            <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r p-3">
+                              <p className="text-xs font-semibold text-blue-700 mb-1">💡 Suggestions</p>
+                              <p className="text-xs text-gray-700 whitespace-pre-wrap">{rv.suggestions}</p>
+                            </div>
+                          )}
+                          {rv.overallComments && (
+                            <div className="bg-gray-50 border-l-4 border-gray-400 rounded-r p-3">
+                              <p className="text-xs font-semibold text-gray-700 mb-1">📝 Additional Comments</p>
+                              <p className="text-xs text-gray-700 whitespace-pre-wrap">{rv.overallComments}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  ))
+                ) : (
+                  <EmptyState title="No reviews submitted" message="Submitted reviews will appear here once reviewers complete their evaluations." />
+                )}
               </div>
             )}
             {/* ── Tabs Content Ends ── */}

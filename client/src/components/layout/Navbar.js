@@ -117,6 +117,11 @@ const Navbar = () => {
                           Site Content
                         </Link>
                       )}
+                      {userRoles.some(r => ["reviewer", "editor", "admin"].includes(r)) && (
+                        <Link to="/reviewer" className="block px-4 py-2 text-sm text-purple-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
+                          📝 Reviewer Panel
+                        </Link>
+                      )}
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"

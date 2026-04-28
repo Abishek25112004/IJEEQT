@@ -34,6 +34,7 @@ if (process.env.NODE_ENV === "development") {
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/papers", require("./routes/papers"));
 app.use("/api/reviews", require("./routes/reviews"));
+app.use("/api/reviewer", require("./routes/reviewer"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/payments", require("./routes/payments"));
 app.use("/api/content", require("./routes/content"));
