@@ -30,6 +30,16 @@ const CallForPapers = () => {
     { event: "Publication Date", date: "June 30, 2025", done: false },
   ];
 
+  const formatDate = (dateStr) => {
+    if (!dateStr || !dateStr.includes("-")) return dateStr;
+    try {
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date(dateStr).toLocaleDateString(undefined, options);
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   return (
     <div>
       <PageHero title="Call for Papers" subtitle={`Volume ${cfp?.volume || "12"}, Issue ${cfp?.issue || "2"}`} breadcrumb="Home / Call for Papers" />
@@ -54,7 +64,7 @@ const CallForPapers = () => {
                     <span className={`text-sm flex items-center gap-2 ${d.done ? "text-gray-400 line-through" : "text-gray-700"}`}>
                       {d.done ? "✅" : "🔹"} {d.event}
                     </span>
-                    <span className={`text-sm font-semibold ${d.done ? "text-gray-400" : "text-blue-700"}`}>{d.date}</span>
+                    <span className={`text-sm font-semibold ${d.done ? "text-gray-400" : "text-blue-700"}`}>{formatDate(d.date)}</span>
                   </div>
                 ))}
               </div>

@@ -110,19 +110,19 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
   const [form, setForm] = useState({
     volume: "12",
     issue: "2",
-    submissionDeadline: "March 31, 2025",
+    submissionDeadline: "2025-03-31",
     reviewNotification: "Within 4–6 weeks",
-    publication: "June 2025",
+    publication: "2025-06-30",
     apc: "₹5,000 / $60 USD",
     announcementTitle: "📢 Submissions Now Open",
     announcementText: "IJEEQT invites original research manuscripts for Volume 12, Issue 2. All accepted papers will be published online immediately upon acceptance.",
     importantDates: [
-      { event: "Submission Portal Opens", date: "January 1, 2025", done: true },
-      { event: "Full Paper Submission Deadline", date: "March 31, 2025", done: false },
-      { event: "Review Notification", date: "May 15, 2025", done: false },
-      { event: "Revised Manuscript Due", date: "June 1, 2025", done: false },
-      { event: "Final Acceptance Notification", date: "June 10, 2025", done: false },
-      { event: "Publication Date", date: "June 30, 2025", done: false },
+      { event: "Submission Portal Opens", date: "2025-01-01", done: true },
+      { event: "Full Paper Submission Deadline", date: "2025-03-31", done: false },
+      { event: "Review Notification", date: "2025-05-15", done: false },
+      { event: "Revised Manuscript Due", date: "2025-06-01", done: false },
+      { event: "Final Acceptance Notification", date: "2025-06-10", done: false },
+      { event: "Publication Date", date: "2025-06-30", done: false },
     ],
     ...data,
   });
@@ -151,9 +151,9 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
         <h4 className="sm:col-span-2 font-bold text-gray-800">Basic Information</h4>
         <div><label className="block text-sm font-medium mb-1">Volume</label><input name="volume" value={form.volume} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Issue</label><input name="issue" value={form.issue} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
-        <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><input name="submissionDeadline" value={form.submissionDeadline} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
+        <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><input type="date" name="submissionDeadline" value={form.submissionDeadline} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Review Notification</label><input name="reviewNotification" value={form.reviewNotification} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
-        <div><label className="block text-sm font-medium mb-1">Publication Date</label><input name="publication" value={form.publication} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
+        <div><label className="block text-sm font-medium mb-1">Publication Date</label><input type="date" name="publication" value={form.publication} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">APC (Processing Charges)</label><input name="apc" value={form.apc} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
       </div>
 
@@ -173,7 +173,7 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
             </div>
             <div className="w-full sm:w-1/3">
               <label className="block text-xs text-gray-500 mb-1">Date</label>
-              <input value={d.date} onChange={(e) => updateImportantDate(idx, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+              <input type="date" value={d.date} onChange={(e) => updateImportantDate(idx, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
             </div>
             <div className="flex items-center mt-2 sm:mt-5">
               <label className="flex items-center text-sm mr-4 cursor-pointer">
