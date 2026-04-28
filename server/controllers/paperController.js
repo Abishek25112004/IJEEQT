@@ -262,8 +262,7 @@ const assignReviewer = async (req, res) => {
     await prisma.paper.update({
       where: { id },
       data: {
-        reviewers: updatedReviewers,
-        status: "under_review"
+        reviewers: updatedReviewers
       }
     });
 

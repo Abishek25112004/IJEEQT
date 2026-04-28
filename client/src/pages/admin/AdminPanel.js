@@ -358,21 +358,60 @@ const AdminPanel = () => {
                           </div>
                           <p className="text-xs text-gray-500 mt-1">{p.authorName} · {p.authorEmail}</p>
                           <p className="text-xs text-gray-400">{new Date(p.submittedAt).toLocaleDateString()}</p>
+                          {p.status === "under_review" && p.reviewers?.length > 0 && (
+                            <p className="text-xs text-blue-600 mt-1 font-medium">
+                              Reviewer(s): {p.reviewers.map(rid => reviewers.find(r => r.uid === rid)?.name || "Unknown").join(", ")}
+                            </p>
+                          )}
                         </div>
                         <div className="flex flex-wrap gap-2 shrink-0">
                           {p.status === "submitted" && (
-                            <button onClick={() => handleStatusUpdate(p.id, "under_review")}
-                              className="bg-blue-100 text-blue-700 text-xs px-3 py-1.5 rounded hover:bg-blue-200 font-medium">
+                            <button 
+                              onClick={() => {
+                                if (!p.reviewers || p.reviewers.length === 0) {
+                                  setErr("You must assign at least one reviewer before sending for review.");
+                                  return;
+                                }
+                                handleStatusUpdate(p.id, "under_review");
+                              }}
+                              className={`text-xs px-3 py-1.5 rounded font-medium ${
+                                p.reviewers?.length > 0 
+                                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200" 
+                                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              }`}
+                            >
                               Send for Review
                             </button>
                           )}
-                          {p.status === "under_review" && (
-                            <>
-                              <button onClick={() => handleStatusUpdate(p.id, "accepted")} className="bg-green-100 text-green-700 text-xs px-3 py-1.5 rounded hover:bg-green-200 font-medium">Accept</button>
-                              <button onClick={() => handleStatusUpdate(p.id, "revision_required")} className="bg-orange-100 text-orange-700 text-xs px-3 py-1.5 rounded hover:bg-orange-200 font-medium">Revise</button>
-                              <button onClick={() => handleStatusUpdate(p.id, "rejected")} className="bg-red-100 text-red-700 text-xs px-3 py-1.5 rounded hover:bg-red-200 font-medium">Reject</button>
-                            </>
-                          )}
+                          {p.status === "under_review" && (() => {
+                            const hasReview = submittedReviews.some((r) => r.paperId === p.id);
+                            const baseClasses = "text-xs px-3 py-1.5 rounded font-medium transition-colors";
+                            return (
+                              <>
+                                <button 
+                                  onClick={() => hasReview ? handleStatusUpdate(p.id, "accepted") : setErr("Cannot accept until at least one review is submitted.")} 
+                                  className={`${baseClasses} ${hasReview ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                                  title={hasReview ? "" : "Waiting for review"}
+                                >
+                                  Accept
+                                </button>
+                                <button 
+                                  onClick={() => hasReview ? handleStatusUpdate(p.id, "revision_required") : setErr("Cannot request revision until at least one review is submitted.")} 
+                                  className={`${baseClasses} ${hasReview ? "bg-orange-100 text-orange-700 hover:bg-orange-200" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                                  title={hasReview ? "" : "Waiting for review"}
+                                >
+                                  Revise
+                                </button>
+                                <button 
+                                  onClick={() => hasReview ? handleStatusUpdate(p.id, "rejected") : setErr("Cannot reject until at least one review is submitted.")} 
+                                  className={`${baseClasses} ${hasReview ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                                  title={hasReview ? "" : "Waiting for review"}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            );
+                          })()}
                           {p.status === "accepted" && (
                             <PublishForm paperId={p.id} onPublish={(extra) => handleStatusUpdate(p.id, "published", extra)} />
                           )}
@@ -380,8 +419,10 @@ const AdminPanel = () => {
                             <select defaultValue="" onChange={(e) => handleAssignReviewer(p.id, e.target.value)}
                               className="border border-gray-300 rounded text-xs px-2 py-1.5 text-gray-700 max-w-[180px]">
                               <option value="" disabled>Assign Reviewer</option>
-                              {reviewers.map((r) => (
-                                <option key={r.uid} value={r.uid}>{r.name} ({(r.roles || [r.role]).join(", ")})</option>
+                              {reviewers
+                                .filter((r) => (r.roles || [r.role]).includes("reviewer"))
+                                .map((r) => (
+                                  <option key={r.uid} value={r.uid}>{r.name} ({(r.roles || [r.role]).join(", ")})</option>
                               ))}
                             </select>
                           )}
