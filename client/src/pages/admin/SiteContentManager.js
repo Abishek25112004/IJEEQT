@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { contentAPI } from "../../services/api";
 import { Card, Spinner, Alert } from "../../components/common";
+import { COUNTRIES } from "../../constants/countries";
 
 const SECTIONS = [
   { id: "call_for_papers", label: "Call for Papers" },
@@ -324,7 +325,14 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
                 </div>
                 <div className="col-span-12 sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-500 mb-1">Country</label>
-                  <input placeholder="USA" value={mem.country} onChange={(e) => updateMember(cIdx, mIdx, "country", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                  <select 
+                    value={mem.country} 
+                    onChange={(e) => updateMember(cIdx, mIdx, "country", e.target.value)} 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  >
+                    <option value="">Select Country</option>
+                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
                 <div className="col-span-12 sm:col-span-3">
                   <label className="block text-xs font-medium text-gray-500 mb-1">Specialization</label>
