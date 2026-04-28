@@ -138,6 +138,7 @@ const AdminPanel = () => {
   // Search state
   const [paperSearch, setPaperSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
+  const [paperStatusFilter, setPaperStatusFilter] = useState("all");
 
   const isAdmin = profile?.roles?.includes("admin") || profile?.role === "admin";
 
@@ -202,8 +203,12 @@ const AdminPanel = () => {
 
   // ── Filtered lists (client-side search, token match) ──────────────────────
   const filteredPapers = useMemo(() => {
-    if (!paperSearch.trim()) return papers;
-    return papers.filter((p) =>
+    let result = papers;
+    if (paperStatusFilter !== "all") {
+      result = result.filter((p) => p.status === paperStatusFilter);
+    }
+    if (!paperSearch.trim()) return result;
+    return result.filter((p) =>
       tokenMatch(
         paperSearch,
         p.title || "",
@@ -213,7 +218,7 @@ const AdminPanel = () => {
         ...(p.keywords || [])
       )
     );
-  }, [papers, paperSearch, tokenMatch]);
+  }, [papers, paperSearch, paperStatusFilter, tokenMatch]);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return users;
@@ -315,6 +320,32 @@ const AdminPanel = () => {
             {activeTab === "papers" && (
               <div className="space-y-4">
                 <SearchBar value={paperSearch} onChange={setPaperSearch} placeholder="Search by title, author, status, or keyword…" />
+                
+                {/* Paper Status Filters */}
+                <div className="flex flex-wrap gap-2 mb-2 mt-2">
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "submitted", label: "Submitted" },
+                    { id: "under_review", label: "Under Review" },
+                    { id: "accepted", label: "Accepted" },
+                    { id: "revision_required", label: "Revised" },
+                    { id: "rejected", label: "Rejected" },
+                    { id: "published", label: "Published" },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setPaperStatusFilter(f.id)}
+                      className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                        paperStatusFilter === f.id
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="text-xs text-gray-400">{filteredPapers.length} of {papers.length} papers</div>
                 {filteredPapers.length > 0 ? (
                   filteredPapers.map((p) => (
