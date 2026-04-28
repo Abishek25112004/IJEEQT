@@ -47,7 +47,6 @@ const AuthorGuidelines = () => (
         <ul className="text-blue-700 space-y-1 mt-2">
           <li>• <span className="underline cursor-pointer">IEEE Manuscript Template (.docx)</span></li>
           <li>• <span className="underline cursor-pointer">LaTeX Template (.zip)</span></li>
-          <li>• <span className="underline cursor-pointer">Cover Letter Template (.docx)</span></li>
         </ul>
       </div>
     </div>
