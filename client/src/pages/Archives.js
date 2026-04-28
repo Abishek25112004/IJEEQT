@@ -9,6 +9,8 @@ const Archives = () => {
   const [selectedYear, setSelectedYear] = useState("all");
   const [selectedVolume, setSelectedVolume] = useState("all");
   const [selectedIssue, setSelectedIssue] = useState("all");
+  const [selectedDomain, setSelectedDomain] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     papersAPI.getPublished()
@@ -49,15 +51,42 @@ const Archives = () => {
     [papers, selectedYear, selectedVolume]
   );
 
+  const domains = useMemo(
+    () =>
+      [...new Set(
+        papers
+          .filter(
+            (p) =>
+              (selectedYear === "all" || p.year === Number(selectedYear)) &&
+              (selectedVolume === "all" || p.volume === Number(selectedVolume)) &&
+              (selectedIssue === "all" || p.issue === Number(selectedIssue))
+          )
+          .map((p) => p.domain)
+          .filter(Boolean)
+      )].sort(),
+    [papers, selectedYear, selectedVolume, selectedIssue]
+  );
+
   const filtered = useMemo(
     () =>
       papers.filter((p) => {
         if (selectedYear !== "all" && p.year !== Number(selectedYear)) return false;
         if (selectedVolume !== "all" && p.volume !== Number(selectedVolume)) return false;
         if (selectedIssue !== "all" && p.issue !== Number(selectedIssue)) return false;
+        if (selectedDomain !== "all" && p.domain !== selectedDomain) return false;
+        
+        if (searchQuery.trim() !== "") {
+          const lowerQ = searchQuery.toLowerCase();
+          const matchTitle = p.title?.toLowerCase().includes(lowerQ);
+          const matchAbstract = p.abstract?.toLowerCase().includes(lowerQ);
+          const matchAuthor = p.authorName?.toLowerCase().includes(lowerQ);
+          const matchKeywords = p.keywords?.some((k) => k.toLowerCase().includes(lowerQ));
+          if (!matchTitle && !matchAbstract && !matchAuthor && !matchKeywords) return false;
+        }
+
         return true;
       }),
-    [papers, selectedYear, selectedVolume, selectedIssue]
+    [papers, selectedYear, selectedVolume, selectedIssue, selectedDomain, searchQuery]
   );
 
   const handleYearChange = (e) => {
@@ -77,59 +106,86 @@ const Archives = () => {
       <div className="max-w-6xl mx-auto px-4 py-10">
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6 items-center">
-          {/* Year filter */}
-          <select
-            value={selectedYear}
-            onChange={handleYearChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="all">All Years</option>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+        <div className="flex flex-col lg:flex-row gap-3 mb-6 lg:items-center">
+          <div className="flex-1 w-full relative">
+            <input
+              type="text"
+              placeholder="Search by title, author, or keywords..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            <span className="absolute left-3 top-2 text-gray-400">🔍</span>
+          </div>
 
-          {/* Volume filter */}
-          <select
-            value={selectedVolume}
-            onChange={handleVolumeChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="all">All Volumes</option>
-            {volumes.map((v) => (
-              <option key={v} value={v}>Volume {v}</option>
-            ))}
-          </select>
-
-          {/* Issue filter */}
-          <select
-            value={selectedIssue}
-            onChange={(e) => setSelectedIssue(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="all">All Issues</option>
-            {issues.map((i) => (
-              <option key={i} value={i}>Issue {i}</option>
-            ))}
-          </select>
-
-          <span className="text-sm text-gray-500 self-center">
-            {filtered.length} article{filtered.length !== 1 ? "s" : ""}
-            {selectedYear !== "all" && ` · ${selectedYear}`}
-            {selectedVolume !== "all" && ` · Vol. ${selectedVolume}`}
-            {selectedIssue !== "all" && ` · Issue ${selectedIssue}`}
-          </span>
-
-          {/* Clear filters */}
-          {(selectedYear !== "all" || selectedVolume !== "all" || selectedIssue !== "all") && (
-            <button
-              onClick={() => { setSelectedYear("all"); setSelectedVolume("all"); setSelectedIssue("all"); }}
-              className="text-xs text-blue-600 hover:underline"
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Year filter */}
+            <select
+              value={selectedYear}
+              onChange={handleYearChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              Clear filters
-            </button>
-          )}
+              <option value="all">All Years</option>
+              {years.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+
+            {/* Volume filter */}
+            <select
+              value={selectedVolume}
+              onChange={handleVolumeChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="all">All Volumes</option>
+              {volumes.map((v) => (
+                <option key={v} value={v}>Volume {v}</option>
+              ))}
+            </select>
+
+            {/* Issue filter */}
+            <select
+              value={selectedIssue}
+              onChange={(e) => setSelectedIssue(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="all">All Issues</option>
+              {issues.map((i) => (
+                <option key={i} value={i}>Issue {i}</option>
+              ))}
+            </select>
+
+            {/* Domain filter */}
+            <select
+              value={selectedDomain}
+              onChange={(e) => setSelectedDomain(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none max-w-[200px] truncate"
+            >
+              <option value="all">All Domains</option>
+              {domains.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+
+            <span className="text-sm text-gray-500 self-center">
+              {filtered.length} article{filtered.length !== 1 ? "s" : ""}
+              {selectedYear !== "all" && ` · ${selectedYear}`}
+              {selectedVolume !== "all" && ` · Vol. ${selectedVolume}`}
+              {selectedIssue !== "all" && ` · Issue ${selectedIssue}`}
+              {selectedDomain !== "all" && ` · ${selectedDomain}`}
+              {searchQuery && ` · matching search`}
+            </span>
+
+            {/* Clear filters */}
+            {(selectedYear !== "all" || selectedVolume !== "all" || selectedIssue !== "all" || selectedDomain !== "all" || searchQuery) && (
+              <button
+                onClick={() => { setSelectedYear("all"); setSelectedVolume("all"); setSelectedIssue("all"); setSelectedDomain("all"); setSearchQuery(""); }}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
         {loading ? (

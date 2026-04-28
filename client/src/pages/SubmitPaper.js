@@ -13,6 +13,7 @@ const SubmitPaper = () => {
     title: "",
     abstract: "",
     keywords: "",
+    domain: "",
     authorName: profile?.name || "",
     authorEmail: user?.email || "",
     institution: profile?.institution || "",
@@ -54,8 +55,8 @@ const SubmitPaper = () => {
     setError("");
     setSuccess("");
 
-    if (!form.title.trim() || !form.abstract.trim() || !form.keywords.trim()) {
-      setError("Title, abstract, and keywords are required.");
+    if (!form.title.trim() || !form.abstract.trim() || !form.keywords.trim() || !form.domain) {
+      setError("Title, abstract, keywords, and domain are required.");
       return;
     }
     if (form.abstract.split(/\s+/).length < 50) {
@@ -160,6 +161,97 @@ const SubmitPaper = () => {
                 required
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Domain <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="domain"
+                value={form.domain}
+                onChange={handleChange}
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              >
+                <option value="" disabled>Select a domain</option>
+                <option value="Ad Hoc & Sensor Networks">Ad Hoc & Sensor Networks</option>
+                <option value="Agricultural Technology (AgriTech)">Agricultural Technology (AgriTech)</option>
+                <option value="Algorithms & Data Structures">Algorithms & Data Structures</option>
+                <option value="Applied Mathematics">Applied Mathematics</option>
+                <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
+                <option value="Autonomous Vehicles & Drones">Autonomous Vehicles & Drones</option>
+                <option value="Bioinformatics & Computational Biology">Bioinformatics & Computational Biology</option>
+                <option value="Biomedical Engineering">Biomedical Engineering</option>
+                <option value="Blockchain & Distributed Ledger Technology">Blockchain & Distributed Ledger Technology</option>
+                <option value="Business Intelligence & Analytics">Business Intelligence & Analytics</option>
+                <option value="Cloud Computing">Cloud Computing</option>
+                <option value="Computational Chemistry">Computational Chemistry</option>
+                <option value="Computational Physics">Computational Physics</option>
+                <option value="Computer Architecture">Computer Architecture</option>
+                <option value="Computer Graphics & Visualization">Computer Graphics & Visualization</option>
+                <option value="Computer Networks & Communication">Computer Networks & Communication</option>
+                <option value="Computer Vision & Image Processing">Computer Vision & Image Processing</option>
+                <option value="Control Systems Engineering">Control Systems Engineering</option>
+                <option value="Cyber-Physical Systems">Cyber-Physical Systems</option>
+                <option value="Cybersecurity & Information Security">Cybersecurity & Information Security</option>
+                <option value="Data Science & Big Data Analytics">Data Science & Big Data Analytics</option>
+                <option value="Database Systems">Database Systems</option>
+                <option value="Decision Support Systems">Decision Support Systems</option>
+                <option value="Digital Education & E-Learning Systems">Digital Education & E-Learning Systems</option>
+                <option value="Digital Systems & Logic Design">Digital Systems & Logic Design</option>
+                <option value="Distributed Systems & Parallel Computing">Distributed Systems & Parallel Computing</option>
+                <option value="E-Commerce & Digital Systems">E-Commerce & Digital Systems</option>
+                <option value="Edge & Fog Computing">Edge & Fog Computing</option>
+                <option value="Electrical Machines & Drives">Electrical Machines & Drives</option>
+                <option value="Electronics & Circuit Design">Electronics & Circuit Design</option>
+                <option value="Embedded Systems">Embedded Systems</option>
+                <option value="Environmental Engineering & Sustainability">Environmental Engineering & Sustainability</option>
+                <option value="Ethics in AI & Technology">Ethics in AI & Technology</option>
+                <option value="Financial Technology (FinTech)">Financial Technology (FinTech)</option>
+                <option value="Formal Methods & Verification">Formal Methods & Verification</option>
+                <option value="Geographic Information Systems (GIS)">Geographic Information Systems (GIS)</option>
+                <option value="Green Computing">Green Computing</option>
+                <option value="Health Informatics & Medical AI">Health Informatics & Medical AI</option>
+                <option value="High Performance Computing">High Performance Computing</option>
+                <option value="Human-Computer Interaction">Human-Computer Interaction</option>
+                <option value="Humanitarian Technology">Humanitarian Technology</option>
+                <option value="Information Retrieval">Information Retrieval</option>
+                <option value="Instrumentation & Measurement">Instrumentation & Measurement</option>
+                <option value="Internet Technologies">Internet Technologies</option>
+                <option value="Internet of Things (IoT)">Internet of Things (IoT)</option>
+                <option value="Management Information Systems">Management Information Systems</option>
+                <option value="Materials Science & Engineering">Materials Science & Engineering</option>
+                <option value="Mobile & Wireless Networks">Mobile & Wireless Networks</option>
+                <option value="Nanotechnology">Nanotechnology</option>
+                <option value="Natural Language Processing">Natural Language Processing</option>
+                <option value="Network Security">Network Security</option>
+                <option value="Next Generation Networks">Next Generation Networks</option>
+                <option value="Operating Systems">Operating Systems</option>
+                <option value="Operations Research & Optimization">Operations Research & Optimization</option>
+                <option value="Photonics & Optical Engineering">Photonics & Optical Engineering</option>
+                <option value="Power Systems & Smart Grid">Power Systems & Smart Grid</option>
+                <option value="Programming Languages & Compilers">Programming Languages & Compilers</option>
+                <option value="Quantum Computing & Quantum Information">Quantum Computing & Quantum Information</option>
+                <option value="Real-Time Systems">Real-Time Systems</option>
+                <option value="Renewable Energy Systems">Renewable Energy Systems</option>
+                <option value="Robotics & Automation">Robotics & Automation</option>
+                <option value="Satellite Communication">Satellite Communication</option>
+                <option value="Semiconductors & Nanoelectronics">Semiconductors & Nanoelectronics</option>
+                <option value="Signal Processing">Signal Processing</option>
+                <option value="Smart Cities & Urban Computing">Smart Cities & Urban Computing</option>
+                <option value="Smart Healthcare Systems">Smart Healthcare Systems</option>
+                <option value="Software Engineering">Software Engineering</option>
+                <option value="Statistics & Probability">Statistics & Probability</option>
+                <option value="Supply Chain & Logistics Technology">Supply Chain & Logistics Technology</option>
+                <option value="Sustainable Computing">Sustainable Computing</option>
+                <option value="Technology Policy & Governance">Technology Policy & Governance</option>
+                <option value="Telecommunication Systems">Telecommunication Systems</option>
+                <option value="Theory of Computation">Theory of Computation</option>
+                <option value="Transportation Systems & Intelligent Vehicles">Transportation Systems & Intelligent Vehicles</option>
+                <option value="VLSI Design & Microelectronics">VLSI Design & Microelectronics</option>
+                <option value="Wireless Communication (5G/6G)">Wireless Communication (5G/6G)</option>
+              </select>
             </div>
 
             <div>

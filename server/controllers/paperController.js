@@ -28,7 +28,7 @@ const uploadToCloudinary = (fileBuffer, fileName) => {
  * Submit a new paper with document upload to Cloudinary
  */
 const submitPaper = async (req, res) => {
-  const { title, abstract, keywords, authorName, authorEmail, institution, coAuthors } = req.body;
+  const { title, abstract, keywords, domain, authorName, authorEmail, institution, coAuthors } = req.body;
 
   if (!title || !abstract || !keywords) {
     return res.status(400).json({ error: "Title, abstract, and keywords are required" });
@@ -71,6 +71,7 @@ const submitPaper = async (req, res) => {
       title,
       abstract,
       keywords: keywordsArray,
+      domain: domain || null,
       author: { connect: { uid: req.user.uid } },
       authorName: authorName || req.user.name || "",
       authorEmail: authorEmail || req.user.email || "",

@@ -32,6 +32,7 @@ model Paper {
   title          String
   abstract       String
   keywords       String[]
+  domain         String?
   
   authorId       String
   author         User      @relation(fields: [authorId], references: [uid])
