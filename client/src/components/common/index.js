@@ -133,15 +133,29 @@ export const PaperCard = ({ paper, showStatus = false }) => {
           {paper.volume && ` · Vol. ${paper.volume}, Issue ${paper.issue}`}
         </span>
         {paper.fileUrl && (
-          <a
-            href={paper.fileUrl}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                const res = await fetch(paper.fileUrl);
+                if (!res.ok) throw new Error("Network error");
+                const blob = await res.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                link.download = `${paper.title ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'paper'}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(blobUrl);
+              } catch (err) {
+                window.open(paper.fileUrl, "_blank");
+              }
+            }}
             className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
           >
-            📄 PDF
-          </a>
+            📄 Download PDF
+          </button>
         )}
       </div>
     </Card>

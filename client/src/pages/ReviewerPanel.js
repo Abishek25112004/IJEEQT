@@ -622,14 +622,29 @@ const ReviewerPanel = () => {
 
                           <div className="flex flex-wrap gap-2 shrink-0">
                             {a.paper?.fileUrl && (
-                              <a
-                                href={a.paper.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const res = await fetch(a.paper.fileUrl);
+                                    if (!res.ok) throw new Error("Network error");
+                                    const blob = await res.blob();
+                                    const blobUrl = window.URL.createObjectURL(blob);
+                                    const link = document.createElement("a");
+                                    link.href = blobUrl;
+                                    link.download = `${a.paper.title ? a.paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'paper'}.pdf`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    link.remove();
+                                    window.URL.revokeObjectURL(blobUrl);
+                                  } catch (err) {
+                                    window.open(a.paper.fileUrl, "_blank");
+                                  }
+                                }}
                                 className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded hover:bg-gray-200 font-medium"
                               >
-                                📄 View PDF
-                              </a>
+                                📄 Download PDF
+                              </button>
                             )}
 
                             {/* Pending: Accept / Decline */}

@@ -40,7 +40,7 @@ const submitPaper = async (req, res) => {
   try {
     // Handle PDF upload if file is present via Cloudinary
     if (req.file) {
-      const fileId = uuidv4();
+      const fileId = `${uuidv4()}.pdf`;
       const result = await uploadToCloudinary(req.file.buffer, fileId);
       
       fileUrl = result.secure_url;
