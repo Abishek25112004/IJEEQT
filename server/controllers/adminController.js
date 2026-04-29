@@ -50,10 +50,10 @@ const updateUserRole = async (req, res) => {
     });
   }
 
-  // Prevent changing own role
-  if (uid === req.user.uid) {
-    return res.status(400).json({ error: "Cannot change your own role" });
-  }
+  // Prevent changing own role (Removed to allow admins to assign roles to themselves)
+  // if (uid === req.user.uid) {
+  //   return res.status(400).json({ error: "Cannot change your own role" });
+  // }
 
   try {
     await prisma.user.update({
