@@ -332,6 +332,23 @@ const ReviewForm = ({ paper, reviewerProfile, onSubmit, onCancel, submitting }) 
   );
 };
 
+// ─── Search Bar ───────────────────────────────────────────────────────────────
+const SearchBar = ({ value, onChange, placeholder }) => (
+  <div className="relative">
+    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+    />
+    {value && (
+      <button onClick={() => onChange("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+    )}
+  </div>
+);
+
 // ─── Main Reviewer Panel ──────────────────────────────────────────────────────
 const ReviewerPanel = () => {
   const { profile: authProfile } = useAuth();
@@ -346,6 +363,13 @@ const ReviewerPanel = () => {
   const [reviewingPaperId, setReviewingPaperId] = useState(null);
   const [expandedReview, setExpandedReview] = useState(null);
   const [myReviews, setMyReviews] = useState([]);
+  const [expandedAbstracts, setExpandedAbstracts] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const toggleAbstract = (paperId) => {
+    setExpandedAbstracts((prev) => ({ ...prev, [paperId]: !prev[paperId] }));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -424,6 +448,25 @@ const ReviewerPanel = () => {
   // Lookup review for a paper
   const getReviewForPaper = (paperId) => myReviews.find((r) => r.paperId === paperId);
 
+  const filteredAssignments = useMemo(() => {
+    return assignments.filter((a) => {
+      // Filter
+      if (filterStatus === "pending" && a.status !== "pending") return false;
+      if (filterStatus === "accepted" && a.status !== "accepted") return false;
+      if (filterStatus === "reviews_completed" && !a.hasReview) return false;
+
+      // Search
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const titleMatch = a.paper?.title?.toLowerCase().includes(term);
+        const authorMatch = a.paper?.authorName?.toLowerCase().includes(term);
+        const abstractMatch = a.paper?.abstract?.toLowerCase().includes(term);
+        if (!titleMatch && !authorMatch && !abstractMatch) return false;
+      }
+      return true;
+    });
+  }, [assignments, filterStatus, searchTerm]);
+
   if (loading) {
     return (
       <div>
@@ -496,11 +539,42 @@ const ReviewerPanel = () => {
               />
             ) : (
               <div className="space-y-4">
-                <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3">
-                  Your Assignments ({assignments.length})
+                <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3 mb-4">
+                  Your Assignments
                 </h2>
 
-                {assignments.map((a) => {
+                <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by title, author, or abstract…" />
+
+                {/* Status Filters */}
+                <div className="flex flex-wrap gap-2 mb-2 mt-2">
+                  {[
+                    { id: "all", label: "All Assignments" },
+                    { id: "pending", label: "Pending Response" },
+                    { id: "accepted", label: "Accepted" },
+                    { id: "reviews_completed", label: "Reviews Completed" },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setFilterStatus(f.id)}
+                      className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                        filterStatus === f.id
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="text-xs text-gray-400">{filteredAssignments.length} of {assignments.length} assignments</div>
+
+                {filteredAssignments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                    No assignments match your search or filter criteria.
+                  </div>
+                ) : (
+                  filteredAssignments.map((a) => {
                   const review = getReviewForPaper(a.paperId);
                   const isReviewing = reviewingPaperId === a.paperId;
 
@@ -523,7 +597,19 @@ const ReviewerPanel = () => {
                               By {a.paper?.authorName} · Assigned {new Date(a.assignedAt).toLocaleDateString()}
                             </p>
                             {a.paper?.abstract && (
-                              <p className="text-xs text-gray-500 mt-2 line-clamp-2">{a.paper.abstract}</p>
+                              <div className="mt-2 text-xs text-gray-500">
+                                <p className={expandedAbstracts[a.paperId] ? "whitespace-pre-wrap" : "line-clamp-2"}>
+                                  {a.paper.abstract}
+                                </p>
+                                {a.paper.abstract.length > 150 && (
+                                  <button
+                                    onClick={() => toggleAbstract(a.paperId)}
+                                    className="text-blue-600 hover:underline font-medium mt-1"
+                                  >
+                                    {expandedAbstracts[a.paperId] ? "Show Less" : "Read More"}
+                                  </button>
+                                )}
+                              </div>
                             )}
                             {a.paper?.keywords?.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
@@ -644,7 +730,7 @@ const ReviewerPanel = () => {
                       )}
                     </div>
                   );
-                })}
+                }))}
               </div>
             )}
           </>
