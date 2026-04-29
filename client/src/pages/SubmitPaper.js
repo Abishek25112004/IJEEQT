@@ -137,6 +137,23 @@ const SubmitPaper = () => {
                 name="abstract"
                 value={form.abstract}
                 onChange={handleChange}
+                onBlur={() => {
+                  setForm((prev) => ({
+                    ...prev,
+                    abstract: prev.abstract.replace(/([^\n])\n([^\n])/g, '$1 $2'),
+                  }));
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  let pastedText = e.clipboardData.getData('text');
+                  pastedText = pastedText.replace(/([^\n])\n([^\n])/g, '$1 $2');
+                  const { selectionStart, selectionEnd } = e.target;
+                  const newAbstract = form.abstract.substring(0, selectionStart) + pastedText + form.abstract.substring(selectionEnd);
+                  setForm(prev => ({ ...prev, abstract: newAbstract }));
+                  setTimeout(() => {
+                    e.target.selectionStart = e.target.selectionEnd = selectionStart + pastedText.length;
+                  }, 0);
+                }}
                 rows={6}
                 placeholder="Write a structured abstract summarizing the research problem, methodology, results, and conclusions..."
                 required

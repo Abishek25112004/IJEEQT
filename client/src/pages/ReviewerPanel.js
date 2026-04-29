@@ -598,7 +598,7 @@ const ReviewerPanel = () => {
                             </p>
                             {a.paper?.abstract && (
                               <div className="mt-2 text-xs text-gray-500">
-                                <p className={expandedAbstracts[a.paperId] ? "whitespace-pre-wrap" : "line-clamp-2"}>
+                                <p className={expandedAbstracts[a.paperId] ? "text-justify" : "line-clamp-2 text-justify"}>
                                   {a.paper.abstract}
                                 </p>
                                 {a.paper.abstract.length > 150 && (

@@ -118,7 +118,7 @@ export const PaperCard = ({ paper, showStatus = false }) => {
       </div>
       {paper.abstract && (
         <div className="mt-3">
-          <p className={`text-xs text-gray-600 leading-relaxed ${expanded ? "" : "line-clamp-3"}`}>{paper.abstract}</p>
+          <p className={`text-xs text-gray-600 leading-relaxed text-justify ${expanded ? "" : "line-clamp-3"}`}>{paper.abstract}</p>
           <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 hover:underline"
