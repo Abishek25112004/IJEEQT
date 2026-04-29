@@ -77,6 +77,67 @@ const RoleMultiSelect = ({ userRoles, uid, onSave, disabled }) => {
   );
 };
 
+// ─── Reviewer Multi-Select ───────────────────────────────────────────────────
+const ReviewerMultiSelect = ({ availableReviewers, selected, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggle = (uid) => {
+    if (selected.includes(uid)) {
+      onChange(selected.filter((id) => id !== uid));
+    } else {
+      onChange([...selected, uid]);
+    }
+  };
+
+  return (
+    <div ref={ref} className="relative inline-block text-left">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex flex-wrap gap-1 max-w-[250px] border border-gray-300 rounded text-xs px-2 py-1.5 min-h-[32px] hover:border-blue-400 bg-white transition-colors text-left"
+      >
+        {selected.length === 0 ? (
+          <span className="text-gray-500">Select Reviewers...</span>
+        ) : (
+          selected.map((uid) => {
+            const rev = availableReviewers.find(r => r.uid === uid);
+            return (
+              <span key={uid} className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-100">
+                {rev?.name || uid.slice(0,6)}
+                <span className="ml-1 hover:text-blue-500 cursor-pointer font-bold" onClick={(e) => { e.stopPropagation(); toggle(uid); }}>×</span>
+              </span>
+            );
+          })
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute z-20 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-gray-200 rounded shadow-lg py-1 w-64 max-h-60 overflow-y-auto">
+          {availableReviewers.map((r) => (
+            <label key={r.uid} className="flex items-start gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-xs">
+              <input type="checkbox" checked={selected.includes(r.uid)} onChange={() => toggle(r.uid)}
+                className="w-3.5 h-3.5 mt-0.5 accent-blue-600 rounded" />
+              <div>
+                <p className="font-medium text-gray-800">{r.name}</p>
+                <p className="text-gray-500 text-[10px]">{r.email} ({(r.roles || [r.role]).join(", ")})</p>
+              </div>
+            </label>
+          ))}
+          {availableReviewers.length === 0 && (
+            <div className="px-3 py-2 text-xs text-gray-500">No reviewers available.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Search Bar ───────────────────────────────────────────────────────────────
 const SearchBar = ({ value, onChange, placeholder }) => (
   <div className="relative">
@@ -150,6 +211,7 @@ const AdminPanel = () => {
   const [submittedReviews, setSubmittedReviews] = useState([]);
   const [expandedReviewId, setExpandedReviewId] = useState(null);
   const [expandedPaperIdForReviews, setExpandedPaperIdForReviews] = useState(null);
+  const [selectedReviewersForPaper, setSelectedReviewersForPaper] = useState({});
 
   const load = async () => {
     setLoading(true);
@@ -364,7 +426,9 @@ const AdminPanel = () => {
 
                 <div className="text-xs text-gray-400">{filteredPapers.length} of {papers.length} papers</div>
                 {filteredPapers.length > 0 ? (
-                  filteredPapers.map((p) => (
+                  filteredPapers.map((p) => {
+                    const localReviewers = selectedReviewersForPaper[p.id] || p.reviewers || [];
+                    return (
                     <Card key={p.id} className="p-5">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -380,18 +444,40 @@ const AdminPanel = () => {
                             </p>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          {["submitted", "under_review"].includes(p.status) && (
+                            <ReviewerMultiSelect 
+                              availableReviewers={reviewers.filter((r) => (r.roles || [r.role]).includes("reviewer"))}
+                              selected={localReviewers}
+                              onChange={(newSelection) => setSelectedReviewersForPaper(prev => ({ ...prev, [p.id]: newSelection }))}
+                            />
+                          )}
+
                           {p.status === "submitted" && (
                             <button 
-                              onClick={() => {
-                                if (!p.reviewers || p.reviewers.length === 0) {
+                              onClick={async () => {
+                                if (localReviewers.length === 0) {
                                   setErr("You must assign at least one reviewer before sending for review.");
                                   return;
                                 }
-                                handleStatusUpdate(p.id, "under_review");
+                                setErr(""); setMsg("Sending for review...");
+                                try {
+                                  // Assign any newly selected reviewers
+                                  const alreadyAssigned = p.reviewers || [];
+                                  const toAssign = localReviewers.filter(uid => !alreadyAssigned.includes(uid));
+                                  await Promise.all(toAssign.map(uid => papersAPI.assignReviewer(p.id, uid)));
+                                  
+                                  // Update status
+                                  await papersAPI.updateStatus(p.id, { status: "under_review" });
+                                  setMsg("Paper sent for review successfully!");
+                                  setSelectedReviewersForPaper(prev => {
+                                    const next = {...prev}; delete next[p.id]; return next;
+                                  });
+                                  load();
+                                } catch (e) { setErr(e.message); }
                               }}
                               className={`text-xs px-3 py-1.5 rounded font-medium ${
-                                p.reviewers?.length > 0 
+                                localReviewers.length > 0 
                                   ? "bg-blue-100 text-blue-700 hover:bg-blue-200" 
                                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
                               }`}
@@ -399,7 +485,31 @@ const AdminPanel = () => {
                               Send for Review
                             </button>
                           )}
+
                           {p.status === "under_review" && (() => {
+                            // Check if there are newly selected reviewers not yet assigned
+                            const toAssign = localReviewers.filter(uid => !(p.reviewers || []).includes(uid));
+                            if (toAssign.length > 0) {
+                              return (
+                                <button 
+                                  onClick={async () => {
+                                    setErr(""); setMsg("Assigning reviewers...");
+                                    try {
+                                      await Promise.all(toAssign.map(uid => papersAPI.assignReviewer(p.id, uid)));
+                                      setMsg("Reviewers assigned successfully!");
+                                      setSelectedReviewersForPaper(prev => {
+                                        const next = {...prev}; delete next[p.id]; return next;
+                                      });
+                                      load();
+                                    } catch (e) { setErr(e.message); }
+                                  }}
+                                  className="text-xs px-3 py-1.5 rounded font-medium bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                                >
+                                  Save Reviewers
+                                </button>
+                              );
+                            }
+
                             const hasReview = submittedReviews.some((r) => r.paperId === p.id);
                             const baseClasses = "text-xs px-3 py-1.5 rounded font-medium transition-colors";
                             return (
@@ -430,17 +540,6 @@ const AdminPanel = () => {
                           })()}
                           {p.status === "accepted" && (
                             <PublishForm paperId={p.id} onPublish={(extra) => handleStatusUpdate(p.id, "published", extra)} />
-                          )}
-                          {["submitted", "under_review"].includes(p.status) && (
-                            <select defaultValue="" onChange={(e) => handleAssignReviewer(p.id, e.target.value)}
-                              className="border border-gray-300 rounded text-xs px-2 py-1.5 text-gray-700 max-w-[180px]">
-                              <option value="" disabled>Assign Reviewer</option>
-                              {reviewers
-                                .filter((r) => (r.roles || [r.role]).includes("reviewer"))
-                                .map((r) => (
-                                  <option key={r.uid} value={r.uid}>{r.name} ({(r.roles || [r.role]).join(", ")})</option>
-                              ))}
-                            </select>
                           )}
                         </div>
                       </div>
@@ -539,7 +638,8 @@ const AdminPanel = () => {
                         return null;
                       })()}
                     </Card>
-                  ))
+                  );
+                })
                 ) : (
                   <EmptyState title={paperSearch ? "No matching papers" : "No papers submitted"} message={paperSearch ? `No papers match "${paperSearch}"` : "Papers will appear here once authors submit them."} />
                 )}
