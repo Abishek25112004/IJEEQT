@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { reviewerAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState } from "../components/common";
+import { BM25 } from "../utils/bm25";
+import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState, HighlightText } from "../components/common";
 
 // ─── Decision badge colors ────────────────────────────────────────────────────
 const DecisionBadge = ({ decision }) => {
@@ -449,22 +450,19 @@ const ReviewerPanel = () => {
   const getReviewForPaper = (paperId) => myReviews.find((r) => r.paperId === paperId);
 
   const filteredAssignments = useMemo(() => {
-    return assignments.filter((a) => {
-      // Filter
-      if (filterStatus === "pending" && a.status !== "pending") return false;
-      if (filterStatus === "accepted" && a.status !== "accepted") return false;
-      if (filterStatus === "reviews_completed" && !a.hasReview) return false;
+    let result = assignments;
+    if (filterStatus === "pending") result = result.filter(a => a.status === "pending");
+    else if (filterStatus === "accepted") result = result.filter(a => a.status === "accepted");
+    else if (filterStatus === "reviews_completed") result = result.filter(a => a.hasReview);
 
-      // Search
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        const titleMatch = a.paper?.title?.toLowerCase().includes(term);
-        const authorMatch = a.paper?.authorName?.toLowerCase().includes(term);
-        const abstractMatch = a.paper?.abstract?.toLowerCase().includes(term);
-        if (!titleMatch && !authorMatch && !abstractMatch) return false;
-      }
-      return true;
-    });
+    if (!searchTerm.trim()) return result;
+    
+    const bm25 = new BM25(result, (a) => [
+      a.paper?.title,
+      a.paper?.authorName,
+      a.paper?.abstract
+    ]);
+    return bm25.search(searchTerm);
   }, [assignments, filterStatus, searchTerm]);
 
   if (loading) {
@@ -592,14 +590,16 @@ const ReviewerPanel = () => {
                               )}
                               <StatusBadge status={a.paper?.status} />
                             </div>
-                            <h3 className="font-semibold text-gray-900 text-sm leading-snug mt-2">{a.paper?.title}</h3>
+                            <h3 className="font-semibold text-gray-900 text-sm leading-snug mt-2">
+                              <HighlightText text={a.paper?.title} highlight={searchTerm} />
+                            </h3>
                             <p className="text-xs text-gray-500 mt-1">
-                              By {a.paper?.authorName} · Assigned {new Date(a.assignedAt).toLocaleDateString()}
+                              By <HighlightText text={a.paper?.authorName} highlight={searchTerm} /> · Assigned {new Date(a.assignedAt).toLocaleDateString()}
                             </p>
                             {a.paper?.abstract && (
                               <div className="mt-2 text-xs text-gray-500">
                                 <p className={expandedAbstracts[a.paperId] ? "text-justify" : "line-clamp-2 text-justify"}>
-                                  {a.paper.abstract}
+                                  <HighlightText text={a.paper.abstract} highlight={searchTerm} />
                                 </p>
                                 {a.paper.abstract.length > 150 && (
                                   <button
@@ -614,7 +614,9 @@ const ReviewerPanel = () => {
                             {a.paper?.keywords?.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {a.paper.keywords.slice(0, 5).map((kw, i) => (
-                                  <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{kw}</span>
+                                  <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                                    <HighlightText text={kw} highlight={searchTerm} />
+                                  </span>
                                 ))}
                               </div>
                             )}

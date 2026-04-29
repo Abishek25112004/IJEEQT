@@ -3,7 +3,8 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { useLocation } from "react-router-dom";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState } from "../../components/common";
+import { BM25 } from "../../utils/bm25";
+import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState, HighlightText } from "../../components/common";
 
 const ALL_ROLES = ["author", "reviewer", "editor", "manager", "admin"];
 
@@ -241,75 +242,50 @@ const AdminPanel = () => {
 
   useEffect(() => { load(); }, []);
 
-  // ── Normalize: lowercase, strip diacritics, normalize unicode, strip punctuation ──
-  const normalize = useCallback((str) => {
-    if (!str) return "";
-    return str
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[\u2018\u2019\u0060\u00B4]/g, "'")
-      .replace(/[\u201C\u201D]/g, '"')
-      .replace(/[\u2013\u2014]/g, "-")
-      .replace(/[\u00A0]/g, " ")
-      .toLowerCase();
-  }, []);
-
-  // Strip all punctuation for token matching
-  const stripPunctuation = useCallback((str) => {
-    return str.replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
-  }, []);
-
-  // Token-based search: every word the user types must appear somewhere in the text
-  const tokenMatch = useCallback((query, ...fields) => {
-    const combined = stripPunctuation(normalize(fields.join(" ")));
-    const tokens = stripPunctuation(normalize(query)).split(" ").filter(Boolean);
-    return tokens.every((token) => combined.includes(token));
-  }, [normalize, stripPunctuation]);
-
-  // ── Filtered lists (client-side search, token match) ──────────────────────
+  // ── Filtered lists (client-side search, BM25) ──────────────────────────────
   const filteredPapers = useMemo(() => {
     let result = papers;
     if (paperStatusFilter !== "all") {
       result = result.filter((p) => p.status === paperStatusFilter);
     }
     if (!paperSearch.trim()) return result;
-    return result.filter((p) =>
-      tokenMatch(
-        paperSearch,
-        p.title || "",
-        p.authorName || "",
-        p.authorEmail || "",
-        p.status || "",
-        ...(p.keywords || [])
-      )
-    );
-  }, [papers, paperSearch, paperStatusFilter, tokenMatch]);
+    
+    const bm25 = new BM25(result, (p) => [
+      p.title,
+      p.authorName,
+      p.authorEmail,
+      p.status,
+      ...(p.keywords || [])
+    ]);
+    return bm25.search(paperSearch);
+  }, [papers, paperSearch, paperStatusFilter]);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return users;
-    return users.filter((u) =>
-      tokenMatch(
-        userSearch,
-        u.name || "",
-        u.email || "",
-        ...(u.roles || []),
-        u.role || ""
-      )
-    );
-  }, [users, userSearch, tokenMatch]);
+    const lowerQ = userSearch.toLowerCase();
+    return users.filter((u) => {
+      const combined = [
+        u.name,
+        u.email,
+        ...(Array.isArray(u.roles) ? u.roles : [u.role || "author"])
+      ].join(" ").toLowerCase();
+      return combined.includes(lowerQ);
+    });
+  }, [users, userSearch]);
 
   const filteredReviewerProfiles = useMemo(() => {
     if (!reviewerSearch.trim()) return reviewerProfiles;
-    return reviewerProfiles.filter((rp) =>
-      tokenMatch(
-        reviewerSearch,
-        rp.user?.name || "",
-        rp.user?.email || "",
-        rp.university || "",
-        rp.specialization || ""
-      )
-    );
-  }, [reviewerProfiles, reviewerSearch, tokenMatch]);
+    const lowerQ = reviewerSearch.toLowerCase();
+    return reviewerProfiles.filter((rp) => {
+      const combined = [
+        rp.user?.name,
+        rp.user?.email,
+        rp.university,
+        rp.specialization
+      ].join(" ").toLowerCase();
+      return combined.includes(lowerQ);
+    });
+  }, [reviewerProfiles, reviewerSearch]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleStatusUpdate = async (paperId, status, extra = {}) => {
@@ -434,9 +410,13 @@ const AdminPanel = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-2">
                             <StatusBadge status={p.status} />
-                            <h3 className="font-semibold text-gray-900 text-sm leading-snug">{p.title}</h3>
+                            <h3 className="font-semibold text-gray-900 text-sm leading-snug">
+                              <HighlightText text={p.title} highlight={paperSearch} />
+                            </h3>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{p.authorName} · {p.authorEmail}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            <HighlightText text={p.authorName} highlight={paperSearch} /> · <HighlightText text={p.authorEmail} highlight={paperSearch} />
+                          </p>
                           <p className="text-xs text-gray-400">{new Date(p.submittedAt).toLocaleDateString()}</p>
                           {p.status === "under_review" && p.reviewers?.length > 0 && (
                             <p className="text-xs text-blue-600 mt-1 font-medium">
@@ -546,7 +526,9 @@ const AdminPanel = () => {
                       {p.keywords?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-3">
                           {p.keywords.map((kw, i) => (
-                            <span key={i} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{kw}</span>
+                            <span key={i} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                              <HighlightText text={kw} highlight={paperSearch} />
+                            </span>
                           ))}
                         </div>
                       )}

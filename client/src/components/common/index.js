@@ -3,6 +3,32 @@
 
 import React from "react";
 
+// ─── Highlight Text ─────────────────────────────────────────────────────────────
+export const HighlightText = ({ text, highlight }) => {
+  if (!highlight || !highlight.trim() || !text) {
+    return <>{text}</>;
+  }
+  
+  const tokens = highlight.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return <>{text}</>;
+
+  const escapedTokens = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
+  const parts = text.toString().split(regex);
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        escapedTokens.some(t => new RegExp(`^${t}$`, 'i').test(part)) ? (
+          <mark key={i} className="bg-yellow-200 text-gray-900 rounded px-0.5">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+};
+
 // ─── Page Hero Banner ──────────────────────────────────────────────────────────
 export const PageHero = ({ title, subtitle, breadcrumb }) => (
   <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-10 px-4">
@@ -91,7 +117,7 @@ export const SectionTitle = ({ title, subtitle }) => (
 );
 
 // ─── Paper Card ────────────────────────────────────────────────────────────────
-export const PaperCard = ({ paper, showStatus = false }) => {
+export const PaperCard = ({ paper, showStatus = false, searchTerm = "" }) => {
   const [expanded, setExpanded] = React.useState(false);
 
   return (
@@ -99,13 +125,17 @@ export const PaperCard = ({ paper, showStatus = false }) => {
       <div className="flex justify-between items-start gap-3">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 text-sm leading-snug hover:text-blue-700 transition-colors">
-            {paper.title}
+            <HighlightText text={paper.title} highlight={searchTerm} />
           </h3>
-          <p className="text-xs text-gray-500 mt-1">{paper.authorName}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            <HighlightText text={paper.authorName} highlight={searchTerm} />
+          </p>
           {paper.keywords?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {paper.keywords.slice(0, 5).map((kw, i) => (
-                <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{kw}</span>
+                <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                  <HighlightText text={kw} highlight={searchTerm} />
+                </span>
               ))}
             </div>
           )}
@@ -118,7 +148,9 @@ export const PaperCard = ({ paper, showStatus = false }) => {
       </div>
       {paper.abstract && (
         <div className="mt-3">
-          <p className={`text-xs text-gray-600 leading-relaxed text-justify ${expanded ? "" : "line-clamp-3"}`}>{paper.abstract}</p>
+          <p className={`text-xs text-gray-600 leading-relaxed text-justify ${expanded ? "" : "line-clamp-3"}`}>
+            <HighlightText text={paper.abstract} highlight={searchTerm} />
+          </p>
           <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 hover:underline"

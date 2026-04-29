@@ -1,6 +1,7 @@
 // src/pages/Archives.js
 import React, { useEffect, useState, useMemo } from "react";
 import { papersAPI } from "../services/api";
+import { BM25 } from "../utils/bm25";
 import { PageHero, PaperCard, Spinner, EmptyState } from "../components/common";
 
 const Archives = () => {
@@ -67,27 +68,27 @@ const Archives = () => {
     [papers, selectedYear, selectedVolume, selectedIssue]
   );
 
-  const filtered = useMemo(
-    () =>
-      papers.filter((p) => {
-        if (selectedYear !== "all" && p.year !== Number(selectedYear)) return false;
-        if (selectedVolume !== "all" && p.volume !== Number(selectedVolume)) return false;
-        if (selectedIssue !== "all" && p.issue !== Number(selectedIssue)) return false;
-        if (selectedDomain !== "all" && p.domain !== selectedDomain) return false;
-        
-        if (searchQuery.trim() !== "") {
-          const lowerQ = searchQuery.toLowerCase();
-          const matchTitle = p.title?.toLowerCase().includes(lowerQ);
-          const matchAbstract = p.abstract?.toLowerCase().includes(lowerQ);
-          const matchAuthor = p.authorName?.toLowerCase().includes(lowerQ);
-          const matchKeywords = p.keywords?.some((k) => k.toLowerCase().includes(lowerQ));
-          if (!matchTitle && !matchAbstract && !matchAuthor && !matchKeywords) return false;
-        }
+  const filtered = useMemo(() => {
+    let result = papers.filter((p) => {
+      if (selectedYear !== "all" && p.year !== Number(selectedYear)) return false;
+      if (selectedVolume !== "all" && p.volume !== Number(selectedVolume)) return false;
+      if (selectedIssue !== "all" && p.issue !== Number(selectedIssue)) return false;
+      if (selectedDomain !== "all" && p.domain !== selectedDomain) return false;
+      return true;
+    });
 
-        return true;
-      }),
-    [papers, selectedYear, selectedVolume, selectedIssue, selectedDomain, searchQuery]
-  );
+    if (searchQuery.trim() !== "") {
+      const bm25 = new BM25(result, (p) => [
+        p.title,
+        p.abstract,
+        p.authorName,
+        ...(p.keywords || [])
+      ]);
+      result = bm25.search(searchQuery);
+    }
+
+    return result;
+  }, [papers, selectedYear, selectedVolume, selectedIssue, selectedDomain, searchQuery]);
 
   const handleYearChange = (e) => {
     setSelectedYear(e.target.value);
@@ -167,14 +168,7 @@ const Archives = () => {
               ))}
             </select>
 
-            <span className="text-sm text-gray-500 self-center">
-              {filtered.length} article{filtered.length !== 1 ? "s" : ""}
-              {selectedYear !== "all" && ` · ${selectedYear}`}
-              {selectedVolume !== "all" && ` · Vol. ${selectedVolume}`}
-              {selectedIssue !== "all" && ` · Issue ${selectedIssue}`}
-              {selectedDomain !== "all" && ` · ${selectedDomain}`}
-              {searchQuery && ` · matching search`}
-            </span>
+
 
             {/* Clear filters */}
             {(selectedYear !== "all" || selectedVolume !== "all" || selectedIssue !== "all" || selectedDomain !== "all" || searchQuery) && (
@@ -192,7 +186,7 @@ const Archives = () => {
           <Spinner center />
         ) : filtered.length > 0 ? (
           <div className="space-y-3">
-            {filtered.map((p) => <PaperCard key={p.id} paper={p} />)}
+            {filtered.map((p) => <PaperCard key={p.id} paper={p} searchTerm={searchQuery} />)}
           </div>
         ) : (
           <EmptyState

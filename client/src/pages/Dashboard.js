@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { papersAPI, paymentsAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { BM25 } from "../utils/bm25";
 import { PageHero, PaperCard, Spinner, EmptyState, StatusBadge, Card } from "../components/common";
 
 // ─── Search Bar ───────────────────────────────────────────────────────────────
@@ -42,44 +43,18 @@ const Dashboard = () => {
     return acc;
   }, {});
 
-  // Normalize: lowercase, strip diacritics, normalize unicode
-  const normalize = useCallback((str) => {
-    if (!str) return "";
-    return str
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[\u2018\u2019\u0060\u00B4]/g, "'")
-      .replace(/[\u201C\u201D]/g, '"')
-      .replace(/[\u2013\u2014]/g, "-")
-      .replace(/[\u00A0]/g, " ")
-      .toLowerCase();
-  }, []);
-
-  // Strip all punctuation for token matching
-  const stripPunctuation = useCallback((str) => {
-    return str.replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
-  }, []);
-
-  // Token-based search: every word the user types must appear somewhere in the text
-  const tokenMatch = useCallback((query, ...fields) => {
-    const combined = stripPunctuation(normalize(fields.join(" ")));
-    const tokens = stripPunctuation(normalize(query)).split(" ").filter(Boolean);
-    return tokens.every((token) => combined.includes(token));
-  }, [normalize, stripPunctuation]);
-
-  // Client-side search for papers (token match)
+  // Client-side search for papers using BM25
   const filteredPapers = useMemo(() => {
     if (!paperSearch.trim()) return papers;
-    return papers.filter((p) =>
-      tokenMatch(
-        paperSearch,
-        p.title || "",
-        p.status || "",
-        ...(p.keywords || []),
-        p.abstract || ""
-      )
-    );
-  }, [papers, paperSearch, tokenMatch]);
+    
+    const bm25 = new BM25(papers, (p) => [
+      p.title,
+      p.status,
+      ...(p.keywords || []),
+      p.abstract
+    ]);
+    return bm25.search(paperSearch);
+  }, [papers, paperSearch]);
 
   const handlePayment = async (paper) => {
     try {
@@ -208,7 +183,7 @@ const Dashboard = () => {
               <div className="space-y-4">
                 {filteredPapers.map((p) => (
                   <div key={p.id} className="relative">
-                    <PaperCard paper={p} showStatus />
+                    <PaperCard paper={p} showStatus searchTerm={paperSearch} />
                     {p.status === "accepted" && p.paymentStatus !== "paid" && (
                       <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
                         <p className="text-sm text-yellow-800">⚠️ Paper accepted! Pay APC (₹5,000) to proceed to publication.</p>
