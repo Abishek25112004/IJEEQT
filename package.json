@@ -1,0 +1,7 @@
+{
+  "name": "journal-app-root",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm run dev --prefix server & npm start --prefix client"
+  }
+}

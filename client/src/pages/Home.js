@@ -155,7 +155,7 @@ const Home = () => {
               Latest Publications
             </h2>
             <Link to="/archives" className="text-blue-600 text-sm hover:underline">
-              View All →
+              View All Publications →
             </Link>
           </div>
 

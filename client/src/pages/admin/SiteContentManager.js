@@ -2,6 +2,26 @@ import React, { useState, useEffect } from "react";
 import { contentAPI } from "../../services/api";
 import { Card, Spinner, Alert } from "../../components/common";
 import { COUNTRIES } from "../../constants/countries";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
+
+// Helper for unique IDs
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const SECTIONS = [
   { id: "call_for_papers", label: "Call for Papers" },
@@ -9,6 +29,42 @@ const SECTIONS = [
   { id: "editorial_board", label: "Editorial Board" },
   { id: "contacts", label: "Contacts" },
 ];
+
+// ─── Sortable Wrapper Component ───────────────────────────────────────────
+const SortableItem = ({ id, children, className = "" }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`relative group ${isDragging ? "shadow-2xl ring-2 ring-blue-500 rounded-xl bg-white" : ""} ${className}`}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-[-24px] sm:left-[-32px] top-1/2 -translate-y-1/2 p-2 text-gray-400 cursor-grab active:cursor-grabbing hover:text-blue-600 transition-all opacity-0 group-hover:opacity-100 z-20"
+        title="Drag to reorder"
+      >
+        <GripVertical size={20} />
+      </div>
+      {children}
+    </div>
+  );
+};
 
 const SiteContentManager = () => {
   const [activeSection, setActiveSection] = useState("call_for_papers");
@@ -27,7 +83,6 @@ const SiteContentManager = () => {
       setContent(res.value);
     } catch (error) {
       if (error.message.includes("not found")) {
-        // Initialize with default
         setContent({});
       } else {
         setErr("Failed to load content: " + error.message);
@@ -45,8 +100,31 @@ const SiteContentManager = () => {
     setSaving(true);
     setErr("");
     setMsg("");
+    
+    // Clean up internal IDs before saving
+    let cleanedValue = JSON.parse(JSON.stringify(value));
+    
+    const removeIds = (obj) => {
+      if (Array.isArray(obj)) {
+        obj.forEach(item => {
+          if (typeof item === 'object' && item !== null) {
+            delete item.uId;
+            removeIds(item);
+          }
+        });
+      } else if (typeof obj === 'object' && obj !== null) {
+        Object.values(obj).forEach(val => removeIds(val));
+      }
+    };
+
+    if (activeSection === "indexing_abstracting" && Array.isArray(cleanedValue)) {
+      cleanedValue = cleanedValue.map(item => typeof item === 'object' ? item.name : item);
+    } else {
+      removeIds(cleanedValue);
+    }
+
     try {
-      await contentAPI.updateContent(activeSection, value);
+      await contentAPI.updateContent(activeSection, cleanedValue);
       setMsg("Content saved successfully");
     } catch (error) {
       setErr("Failed to save content: " + error.message);
@@ -82,11 +160,13 @@ const SiteContentManager = () => {
           <Spinner center />
         ) : (
           <div className="space-y-6">
-            <h3 className="text-lg font-bold text-gray-900 border-b pb-3 capitalize">
-              Edit {activeSection.replace(/_/g, " ")}
-            </h3>
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-lg font-bold text-gray-900 capitalize">
+                Edit {activeSection.replace(/_/g, " ")}
+              </h3>
+              <p className="text-xs text-gray-400 italic">💡 Hint: Drag handle appears on hover to reorder rows</p>
+            </div>
             
-            {/* dynamic forms based on activeSection */}
             {activeSection === "call_for_papers" && (
               <CallForPapersForm data={content} onSave={handleSave} saving={saving} />
             )}
@@ -116,34 +196,57 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
     publication: "2025-06-30",
     apc: "₹5,000 / $60 USD",
     announcementTitle: "📢 Submissions Now Open",
-    announcementText: "IJEEQT invites original research manuscripts for Volume 12, Issue 2. All accepted papers will be published online immediately upon acceptance.",
-    importantDates: [
-      { event: "Submission Portal Opens", date: "2025-01-01", done: true },
-      { event: "Full Paper Submission Deadline", date: "2025-03-31", done: false },
-      { event: "Review Notification", date: "2025-05-15", done: false },
-      { event: "Revised Manuscript Due", date: "2025-06-01", done: false },
-      { event: "Final Acceptance Notification", date: "2025-06-10", done: false },
-      { event: "Publication Date", date: "2025-06-30", done: false },
-    ],
+    announcementText: "IJEEQT invites original research manuscripts for Volume 12, Issue 2.",
+    importantDates: [],
     ...data,
   });
+
+  useEffect(() => {
+    if (data?.importantDates) {
+      setForm(prev => ({
+        ...prev,
+        importantDates: data.importantDates.map(d => ({ ...d, uId: d.uId || generateId() }))
+      }));
+    }
+  }, [data]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setForm((prev) => {
+        const oldIndex = prev.importantDates.findIndex((d) => d.uId === active.id);
+        const newIndex = prev.importantDates.findIndex((d) => d.uId === over.id);
+        return { ...prev, importantDates: arrayMove(prev.importantDates, oldIndex, newIndex) };
+      });
+    }
+  };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const addImportantDate = () => {
-    setForm({ ...form, importantDates: [...form.importantDates, { event: "New Event", date: "", done: false }] });
+    setForm({ 
+      ...form, 
+      importantDates: [...form.importantDates, { uId: generateId(), event: "New Event", date: "", done: false }] 
+    });
   };
 
-  const updateImportantDate = (idx, field, value) => {
-    const newDates = [...form.importantDates];
-    newDates[idx][field] = value;
-    setForm({ ...form, importantDates: newDates });
+  const updateImportantDate = (uId, field, value) => {
+    setForm({
+      ...form,
+      importantDates: form.importantDates.map(d => d.uId === uId ? { ...d, [field]: value } : d)
+    });
   };
 
-  const removeImportantDate = (idx) => {
-    const newDates = [...form.importantDates];
-    newDates.splice(idx, 1);
-    setForm({ ...form, importantDates: newDates });
+  const removeImportantDate = (uId) => {
+    setForm({ 
+      ...form, 
+      importantDates: form.importantDates.filter(d => d.uId !== uId) 
+    });
   };
 
   return (
@@ -164,27 +267,33 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
         <div><label className="block text-sm font-medium mb-1">Text</label><textarea name="announcementText" value={form.announcementText} onChange={handleChange} rows="2" className="w-full border rounded px-3 py-2" /></div>
       </div>
 
-      <div className="p-4 border border-gray-200 rounded-xl space-y-4 bg-gray-50/50">
+      <div className="p-4 sm:ml-8 border border-gray-200 rounded-xl space-y-4 bg-gray-50/50">
         <h4 className="font-bold text-gray-800">Important Dates List</h4>
-        {form.importantDates?.map((d, idx) => (
-          <div key={idx} className="flex flex-col sm:flex-row gap-3 bg-white p-3 rounded border shadow-sm items-start sm:items-center">
-            <div className="w-full sm:w-1/2">
-              <label className="block text-xs text-gray-500 mb-1">Event Name</label>
-              <input value={d.event} onChange={(e) => updateImportantDate(idx, "event", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
-            </div>
-            <div className="w-full sm:w-1/3">
-              <label className="block text-xs text-gray-500 mb-1">Date</label>
-              <input type="date" value={d.date} onChange={(e) => updateImportantDate(idx, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
-            </div>
-            <div className="flex items-center mt-2 sm:mt-5">
-              <label className="flex items-center text-sm mr-4 cursor-pointer">
-                <input type="checkbox" checked={d.done} onChange={(e) => updateImportantDate(idx, "done", e.target.checked)} className="mr-2" />
-                Done
-              </label>
-              <button onClick={() => removeImportantDate(idx)} className="text-red-500 hover:text-red-700 font-bold ml-auto">&times;</button>
-            </div>
-          </div>
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={form.importantDates.map(d => d.uId)} strategy={verticalListSortingStrategy}>
+            {form.importantDates?.map((d) => (
+              <SortableItem key={d.uId} id={d.uId}>
+                <div className="flex flex-col sm:flex-row gap-3 bg-white p-3 rounded border shadow-sm items-start sm:items-center">
+                  <div className="w-full sm:w-1/2">
+                    <label className="block text-xs text-gray-500 mb-1">Event Name</label>
+                    <input value={d.event} onChange={(e) => updateImportantDate(d.uId, "event", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+                  </div>
+                  <div className="w-full sm:w-1/3">
+                    <label className="block text-xs text-gray-500 mb-1">Date</label>
+                    <input type="date" value={d.date} onChange={(e) => updateImportantDate(d.uId, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+                  </div>
+                  <div className="flex items-center mt-2 sm:mt-5">
+                    <label className="flex items-center text-sm mr-4 cursor-pointer">
+                      <input type="checkbox" checked={d.done} onChange={(e) => updateImportantDate(d.uId, "done", e.target.checked)} className="mr-2" />
+                      Done
+                    </label>
+                    <button onClick={() => removeImportantDate(d.uId)} className="text-red-500 hover:text-red-700 font-bold ml-auto">&times;</button>
+                  </div>
+                </div>
+              </SortableItem>
+            ))}
+          </SortableContext>
+        </DndContext>
         <button onClick={addImportantDate} className="text-blue-600 border border-blue-200 hover:bg-blue-50 px-4 py-2 rounded text-sm font-medium">
           + Add Date
         </button>
@@ -199,29 +308,53 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
 
 // ─── Indexing Form ─────────────────────────────────────────────────────────
 const IndexingForm = ({ data, onSave, saving }) => {
-  const [items, setItems] = useState(
-    Array.isArray(data) && data.length > 0 ? data : ["Scopus", "Web of Science", "DOAJ", "CrossRef", "Google Scholar", "PubMed"]
-  );
+  const [items, setItems] = useState([]);
   const [newItem, setNewItem] = useState("");
 
-  const handleAdd = () => { if (newItem.trim()) { setItems([...items, newItem.trim()]); setNewItem(""); } };
-  const handleRemove = (idx) => setItems(items.filter((_, i) => i !== idx));
+  useEffect(() => {
+    const raw = Array.isArray(data) && data.length > 0 ? data : ["Scopus", "Web of Science", "DOAJ", "CrossRef", "Google Scholar", "PubMed"];
+    setItems(raw.map(name => ({ uId: generateId(), name })));
+  }, [data]);
+
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setItems((prev) => {
+        const oldIndex = prev.findIndex((i) => i.uId === active.id);
+        const newIndex = prev.findIndex((i) => i.uId === over.id);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleAdd = () => { if (newItem.trim()) { setItems([...items, { uId: generateId(), name: newItem.trim() }]); setNewItem(""); } };
+  const handleRemove = (uId) => setItems(items.filter((i) => i.uId !== uId));
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 mb-4">
-        {items.map((item, idx) => (
-          <div key={idx} className="bg-gray-100 border rounded-full px-3 py-1 flex items-center gap-2 text-sm">
-            {item}
-            <button onClick={() => handleRemove(idx)} className="text-red-500 hover:text-red-700 font-bold">&times;</button>
-          </div>
-        ))}
+      <div className="sm:ml-8">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map(i => i.uId)} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col gap-2 mb-4 max-w-md">
+              {items.map((item) => (
+                <SortableItem key={item.uId} id={item.uId}>
+                  <div className="bg-white border rounded-lg px-4 py-2 flex items-center justify-between shadow-sm">
+                    <span className="text-sm font-medium">{item.name}</span>
+                    <button onClick={() => handleRemove(item.uId)} className="text-red-500 hover:text-red-700 font-bold">&times;</button>
+                  </div>
+                </SortableItem>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
-      <div className="flex gap-2 max-w-sm">
+      <div className="flex gap-2 max-w-sm ml-0 sm:ml-8">
         <input value={newItem} onChange={(e) => setNewItem(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} placeholder="Add new index name..." className="flex-1 border rounded px-3 py-2 text-sm" />
         <button onClick={handleAdd} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Add</button>
       </div>
-      <button onClick={() => onSave(items)} disabled={saving} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 disabled:opacity-50">
+      <button onClick={() => onSave(items)} disabled={saving} className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 disabled:opacity-50">
         {saving ? "Saving..." : "Save Changes"}
       </button>
     </div>
@@ -236,127 +369,149 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
     if (!data || Object.keys(data).length === 0) {
       setCategories([
         {
+          uId: generateId(),
           category: "Editor-in-Chief",
-          members: [{ name: "Prof. Dr. Rajesh Kumar", institution: "IIT Delhi", country: "India", specialization: "AI" }]
-        },
-        { category: "Associate Editors", members: [] },
-        { category: "Editorial Board Members", members: [] }
+          members: [{ uId: generateId(), name: "Prof. Dr. Rajesh Kumar", institution: "IIT Delhi", country: "India", specialization: "AI" }]
+        }
       ]);
     } else {
       const arr = Object.keys(data).map(key => ({
+        uId: generateId(),
         category: key,
-        members: data[key] || []
+        members: (data[key] || []).map(m => ({ ...m, uId: generateId() }))
       }));
       setCategories(arr);
     }
   }, [data]);
 
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  const handleDragCategory = (event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setCategories((prev) => {
+        const oldIndex = prev.findIndex((c) => c.uId === active.id);
+        const newIndex = prev.findIndex((c) => c.uId === over.id);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleDragMember = (catId, event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setCategories((prev) => prev.map(cat => {
+        if (cat.uId !== catId) return cat;
+        const oldIndex = cat.members.findIndex(m => m.uId === active.id);
+        const newIndex = cat.members.findIndex(m => m.uId === over.id);
+        return { ...cat, members: arrayMove(cat.members, oldIndex, newIndex) };
+      }));
+    }
+  };
+
   const handleSave = () => {
     const output = {};
-    categories.forEach(c => {
-      if (c.category.trim()) {
-        output[c.category.trim()] = c.members;
-      }
-    });
+    categories.forEach(c => { if (c.category.trim()) output[c.category.trim()] = c.members; });
     onSave(output);
-  };
-
-  const addCategory = () => setCategories([...categories, { category: "New Category", members: [] }]);
-  
-  const removeCategory = (idx) => {
-    const newCats = [...categories];
-    newCats.splice(idx, 1);
-    setCategories(newCats);
-  };
-
-  const updateCategoryName = (idx, val) => {
-    const newCats = [...categories];
-    newCats[idx].category = val;
-    setCategories(newCats);
-  };
-
-  const addMember = (catIdx) => {
-    const newCats = [...categories];
-    newCats[catIdx].members.push({ name: "", institution: "", country: "", specialization: "" });
-    setCategories(newCats);
-  };
-
-  const removeMember = (catIdx, memIdx) => {
-    const newCats = [...categories];
-    newCats[catIdx].members.splice(memIdx, 1);
-    setCategories(newCats);
-  };
-
-  const updateMember = (catIdx, memIdx, field, val) => {
-    const newCats = [...categories];
-    newCats[catIdx].members[memIdx][field] = val;
-    setCategories(newCats);
   };
 
   return (
     <div className="space-y-6">
-      {categories.map((cat, cIdx) => (
-        <div key={cIdx} className="border border-gray-200 rounded-xl p-5 bg-gray-50/50 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-gray-200 pb-3">
-            <input 
-              value={cat.category} 
-              onChange={(e) => updateCategoryName(cIdx, e.target.value)}
-              className="font-bold text-lg text-gray-800 bg-transparent px-1 py-1 outline-none focus:ring-2 focus:ring-blue-500 rounded w-full sm:max-w-sm transition-all border border-transparent hover:border-gray-300 focus:bg-white"
-              placeholder="Category Name (e.g. Associate Editors)"
-            />
-            <button onClick={() => removeCategory(cIdx)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-red-200 shrink-0">
-              Remove Category
-            </button>
-          </div>
-          
-          <div className="space-y-3">
-            {cat.members.length === 0 && (
-              <p className="text-sm text-gray-400 italic px-2">No members in this category.</p>
-            )}
-            {cat.members.map((mem, mIdx) => (
-              <div key={mIdx} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm relative group">
-                <div className="col-span-12 sm:col-span-3">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
-                  <input placeholder="Prof. John Doe" value={mem.name} onChange={(e) => updateMember(cIdx, mIdx, "name", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragCategory}>
+        <SortableContext items={categories.map(c => c.uId)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-6 sm:ml-8">
+            {categories.map((cat, cIdx) => (
+              <SortableItem key={cat.uId} id={cat.uId}>
+                <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-gray-200 pb-3">
+                    <input 
+                      value={cat.category} 
+                      onChange={(e) => {
+                        const newCats = [...categories];
+                        newCats[cIdx].category = e.target.value;
+                        setCategories(newCats);
+                      }}
+                      className="font-bold text-lg text-gray-800 bg-transparent px-1 py-1 outline-none focus:ring-2 focus:ring-blue-500 rounded w-full sm:max-w-sm transition-all border border-transparent hover:border-gray-300 focus:bg-white"
+                      placeholder="Category Name"
+                    />
+                    <button onClick={() => setCategories(categories.filter(c => c.uId !== cat.uId))} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-red-200 shrink-0">
+                      Remove Category
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3 sm:ml-8">
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragMember(cat.uId, e)}>
+                      <SortableContext items={cat.members.map(m => m.uId)} strategy={verticalListSortingStrategy}>
+                        {cat.members.map((mem, mIdx) => (
+                          <SortableItem key={mem.uId} id={mem.uId}>
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                              <div className="col-span-12 sm:col-span-3">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                                <input value={mem.name} onChange={(e) => {
+                                  const newCats = [...categories];
+                                  newCats[cIdx].members[mIdx].name = e.target.value;
+                                  setCategories(newCats);
+                                }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                              </div>
+                              <div className="col-span-12 sm:col-span-3">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Institution</label>
+                                <input value={mem.institution} onChange={(e) => {
+                                  const newCats = [...categories];
+                                  newCats[cIdx].members[mIdx].institution = e.target.value;
+                                  setCategories(newCats);
+                                }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                              </div>
+                              <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                                <select value={mem.country} onChange={(e) => {
+                                  const newCats = [...categories];
+                                  newCats[cIdx].members[mIdx].country = e.target.value;
+                                  setCategories(newCats);
+                                }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white">
+                                  <option value="">Select Country</option>
+                                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              </div>
+                              <div className="col-span-12 sm:col-span-3">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Specialization</label>
+                                <input value={mem.specialization} onChange={(e) => {
+                                  const newCats = [...categories];
+                                  newCats[cIdx].members[mIdx].specialization = e.target.value;
+                                  setCategories(newCats);
+                                }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                              </div>
+                              <div className="col-span-12 sm:col-span-1 flex justify-center mt-2 sm:mt-5">
+                                <button onClick={() => {
+                                  const newCats = [...categories];
+                                  newCats[cIdx].members.splice(mIdx, 1);
+                                  setCategories(newCats);
+                                }} className="text-gray-400 hover:text-red-500 transition-colors">&times;</button>
+                              </div>
+                            </div>
+                          </SortableItem>
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                    <button onClick={() => {
+                      const newCats = [...categories];
+                      newCats[cIdx].members.push({ uId: generateId(), name: "", institution: "", country: "", specialization: "" });
+                      setCategories(newCats);
+                    }} className="mt-2 text-blue-600 hover:bg-blue-50 text-sm font-medium px-4 py-2 rounded-lg border border-dashed border-blue-200">
+                      + Add Member
+                    </button>
+                  </div>
                 </div>
-                <div className="col-span-12 sm:col-span-3">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Institution</label>
-                  <input placeholder="University Name" value={mem.institution} onChange={(e) => updateMember(cIdx, mIdx, "institution", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                </div>
-                <div className="col-span-12 sm:col-span-2">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Country</label>
-                  <select 
-                    value={mem.country} 
-                    onChange={(e) => updateMember(cIdx, mIdx, "country", e.target.value)} 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  >
-                    <option value="">Select Country</option>
-                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="col-span-12 sm:col-span-3">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Specialization</label>
-                  <input placeholder="Area of research" value={mem.specialization} onChange={(e) => updateMember(cIdx, mIdx, "specialization", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                </div>
-                <div className="col-span-12 sm:col-span-1 flex justify-end sm:justify-center mt-2 sm:mt-5">
-                  <button onClick={() => removeMember(cIdx, mIdx)} className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors" title="Remove Member">
-                    <span className="text-xl leading-none">&times;</span>
-                  </button>
-                </div>
-              </div>
+              </SortableItem>
             ))}
-            <button onClick={() => addMember(cIdx)} className="mt-2 text-blue-600 hover:bg-blue-50 text-sm font-medium px-4 py-2 rounded-lg transition-colors border border-dashed border-blue-200 hover:border-blue-300 inline-flex items-center gap-2">
-              <span>+</span> Add Member
-            </button>
           </div>
-        </div>
-      ))}
+        </SortableContext>
+      </DndContext>
       
       <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 mt-6">
-        <button onClick={addCategory} className="bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-semibold transition-colors">
+        <button onClick={() => setCategories([...categories, { uId: generateId(), category: "New Category", members: [] }])} className="bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-semibold">
           + Add Category
         </button>
-        <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 text-sm font-semibold transition-colors flex items-center gap-2">
+        <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 text-sm font-semibold">
           {saving ? "Saving..." : "Save Editorial Board"}
         </button>
       </div>
@@ -369,83 +524,67 @@ const ContactsForm = ({ data, onSave, saving }) => {
   const [contacts, setContacts] = useState([]);
 
   useEffect(() => {
-    if (!data || Object.keys(data).length === 0) {
-      setContacts([
-        { icon: "📧", label: "Editorial Email", value: "editor@ijart.org" },
-        { icon: "📧", label: "Submissions", value: "submit@ijart.org" },
-        { icon: "📞", label: "Phone", value: "+91 8072287692" },
-        { icon: "📍", label: "Address", value: "Academic Research Press\n123, Science Park, New Delhi – 110016, India" },
-        { icon: "🕒", label: "Office Hours", value: "Mon–Fri, 9:00 AM – 5:30 PM IST" }
-      ]);
-    } else {
-      setContacts(data);
-    }
+    const raw = Array.isArray(data) && data.length > 0 ? data : [
+      { icon: "📧", label: "Editorial Email", value: "editor@ijart.org" },
+      { icon: "📧", label: "Submissions", value: "submit@ijart.org" },
+      { icon: "📞", label: "Phone", value: "+91 8072287692" },
+      { icon: "📍", label: "Address", value: "Academic Research Press" }
+    ];
+    setContacts(raw.map(c => ({ ...c, uId: generateId() })));
   }, [data]);
 
-  const handleSave = () => {
-    onSave(contacts);
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setContacts((prev) => {
+        const oldIndex = prev.findIndex((c) => c.uId === active.id);
+        const newIndex = prev.findIndex((c) => c.uId === over.id);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
   };
 
-  const addContact = () => setContacts([...contacts, { icon: "📌", label: "New Detail", value: "" }]);
-  
-  const removeContact = (idx) => {
-    const newContacts = [...contacts];
-    newContacts.splice(idx, 1);
-    setContacts(newContacts);
-  };
-
-  const updateContact = (idx, field, val) => {
-    const newContacts = [...contacts];
-    newContacts[idx][field] = val;
-    setContacts(newContacts);
+  const updateContact = (uId, field, val) => {
+    setContacts(contacts.map(c => c.uId === uId ? { ...c, [field]: val } : c));
   };
 
   return (
     <div className="space-y-4">
-      {contacts.map((contact, idx) => (
-        <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-stretch bg-gray-50 p-4 rounded-xl border border-gray-200">
-          <div className="flex-shrink-0">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Icon</label>
-            <input 
-              placeholder="Emoji" 
-              value={contact.icon} 
-              onChange={(e) => updateContact(idx, "icon", e.target.value)} 
-              className="w-14 border border-gray-300 rounded-md px-2 py-2 text-center text-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" 
-              title="Emoji or icon"
-            />
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={contacts.map(c => c.uId)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4 sm:ml-8">
+            {contacts.map((contact) => (
+              <SortableItem key={contact.uId} id={contact.uId}>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-stretch bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex-shrink-0">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Icon</label>
+                    <input value={contact.icon} onChange={(e) => updateContact(contact.uId, "icon", e.target.value)} className="w-14 border border-gray-300 rounded-md px-2 py-2 text-center text-lg bg-white" />
+                  </div>
+                  <div className="w-full sm:w-1/3">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Label</label>
+                    <input value={contact.label} onChange={(e) => updateContact(contact.uId, "label", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white font-medium" />
+                  </div>
+                  <div className="w-full sm:flex-1">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Value</label>
+                    <textarea value={contact.value} onChange={(e) => updateContact(contact.uId, "value", e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white min-h-[42px]" rows={2} />
+                  </div>
+                  <div className="flex justify-end w-full sm:w-auto sm:self-center mt-2 sm:mt-5">
+                    <button onClick={() => setContacts(contacts.filter(c => c.uId !== contact.uId))} className="text-gray-400 hover:text-red-500 transition-colors">&times;</button>
+                  </div>
+                </div>
+              </SortableItem>
+            ))}
           </div>
-          <div className="w-full sm:w-1/3">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Label</label>
-            <input 
-              placeholder="e.g. Phone" 
-              value={contact.label} 
-              onChange={(e) => updateContact(idx, "label", e.target.value)} 
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium" 
-            />
-          </div>
-          <div className="w-full sm:flex-1">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Value</label>
-            <textarea 
-              placeholder="Enter contact detail..." 
-              value={contact.value} 
-              onChange={(e) => updateContact(idx, "value", e.target.value)} 
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-h-[42px]" 
-              rows={2}
-            />
-          </div>
-          <div className="flex justify-end w-full sm:w-auto sm:self-center mt-2 sm:mt-5">
-            <button onClick={() => removeContact(idx)} className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors" title="Remove Contact">
-              <span className="text-2xl leading-none">&times;</span>
-            </button>
-          </div>
-        </div>
-      ))}
+        </SortableContext>
+      </DndContext>
       
       <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 mt-6">
-        <button onClick={addContact} className="bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-semibold transition-colors">
+        <button onClick={() => setContacts([...contacts, { uId: generateId(), icon: "📌", label: "New Detail", value: "" }])} className="bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-semibold">
           + Add Contact
         </button>
-        <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 text-sm font-semibold transition-colors flex items-center gap-2">
+        <button onClick={() => onSave(contacts)} disabled={saving} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 text-sm font-semibold">
           {saving ? "Saving..." : "Save Contacts"}
         </button>
       </div>
@@ -454,3 +593,4 @@ const ContactsForm = ({ data, onSave, saving }) => {
 };
 
 export default SiteContentManager;
+
