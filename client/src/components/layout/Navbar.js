@@ -107,19 +107,24 @@ const Navbar = () => {
                       <Link to="/submit-paper" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropdownOpen(false)}>
                         Submit Paper
                       </Link>
-                      {userRoles.some(r => ["admin", "editor"].includes(r)) && (
+                      {userRoles.includes("admin") && (
                         <Link to="/admin" className="block px-4 py-2 text-sm text-blue-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
-                          Admin Panel
+                          🛡️ Admin Panel
+                        </Link>
+                      )}
+                      {userRoles.includes("editor") && (
+                        <Link to="/editor" className="block px-4 py-2 text-sm text-purple-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
+                          📝 Editor Panel
                         </Link>
                       )}
                       {userRoles.some(r => ["admin", "manager"].includes(r)) && (
                         <Link to="/site-content" className="block px-4 py-2 text-sm text-blue-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
-                          Site Content
+                          ⚙️ Site Content
                         </Link>
                       )}
-                      {userRoles.some(r => ["reviewer", "editor", "admin"].includes(r)) && (
-                        <Link to="/reviewer" className="block px-4 py-2 text-sm text-purple-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
-                          📝 Reviewer Panel
+                      {userRoles.includes("reviewer") && (
+                        <Link to="/reviewer" className="block px-4 py-2 text-sm text-emerald-700 hover:bg-gray-50 font-medium" onClick={() => setDropdownOpen(false)}>
+                          🔍 Reviewer Panel
                         </Link>
                       )}
                       <button

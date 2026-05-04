@@ -57,14 +57,14 @@ const Contact = () => {
           <Card className="p-4 bg-blue-50 border-blue-200">
             <p className="text-sm font-semibold text-blue-800 mb-1">For Authors</p>
             <p className="text-sm text-blue-700">
-              For submission status queries, contact <strong>submit@ijart.org</strong> with your paper ID.
+              For submission status queries, contact <strong>submissions@ijeeqt.org</strong> with your paper ID.
             </p>
           </Card>
 
           <Card className="p-4 bg-blue-50 border-blue-200">
             <p className="text-sm font-semibold text-blue-800 mb-1">For Reviewers</p>
             <p className="text-sm text-blue-700">
-              To join the reviewer panel, email <strong>reviewers@ijart.org</strong> with your CV and areas of expertise.
+              To join the reviewer panel, email <strong>reviewers@ijeeqt.org</strong> with your CV and areas of expertise.
             </p>
           </Card>
         </div>

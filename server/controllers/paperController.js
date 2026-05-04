@@ -103,18 +103,30 @@ const submitPaper = async (req, res) => {
  */
 const getAllPapers = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
-    const isAdmin = ["admin", "editor"].includes(req.user.role);
+    const { status, onlyOwn, page = 1, limit = 20 } = req.query;
+    const isAdmin = (req.user.roles || []).includes("admin") || req.user.role === "admin";
+    const isEditor = (req.user.roles || []).includes("editor") || req.user.role === "editor";
 
     const whereClause = {};
 
-    // Non-admin authors only see their own papers
-    if (!isAdmin) {
+    // Role-based visibility
+    if (onlyOwn === "true" || (!isAdmin && !isEditor)) {
+      // If explicitly requested or user is just an author, only show their own papers
       whereClause.authorId = req.user.uid;
+    } else if (isEditor && !isAdmin) {
+      // Editors see all except published papers by default (to avoid mixing with admin's published list)
+      // But if they explicitly filter by 'published' or it's their own paper, they can see it.
+      if (!status || status !== "published") {
+        whereClause.OR = [
+          { status: { not: "published" } },
+          { authorId: req.user.uid }
+        ];
+      }
     }
 
     // Filter by status if provided
     if (status) {
+      // If editor tries to fetch published, it will be intersected with the whereClause above by Prisma
       whereClause.status = status;
     }
 
@@ -199,6 +211,12 @@ const updatePaperStatus = async (req, res) => {
     const validStatuses = ["submitted", "under_review", "revision_required", "accepted", "rejected", "published"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: `Invalid status. Must be: ${validStatuses.join(", ")}` });
+    }
+
+    // Restriction: Editor cannot publish
+    const isAdmin = (req.user.roles || []).includes("admin") || req.user.role === "admin";
+    if (status === "published" && !isAdmin) {
+      return res.status(403).json({ error: "Access denied. Only admins can publish papers." });
     }
 
     const updates = {

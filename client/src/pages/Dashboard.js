@@ -33,7 +33,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     Promise.all([
-      papersAPI.getAll().then((res) => setPapers(res.papers || [])),
+      papersAPI.getAll({ onlyOwn: "true" }).then((res) => setPapers(res.papers || [])),
       paymentsAPI.getMyPayments().then((res) => setPayments(res.payments || [])).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
@@ -92,20 +92,11 @@ const Dashboard = () => {
     }
   };
 
-  // Show admin panel link for admins and editors
-  const showAdminLink =
-    profile?.roles?.some((r) => ["admin", "editor"].includes(r)) ||
-    ["admin", "editor"].includes(profile?.role);
-
-  // Show site content link for admins and managers
-  const showContentLink =
-    profile?.roles?.some((r) => ["admin", "manager"].includes(r)) ||
-    ["admin", "manager"].includes(profile?.role);
-
-  // Show reviewer panel link for reviewers, editors, admins
-  const showReviewerLink =
-    profile?.roles?.some((r) => ["reviewer", "editor", "admin"].includes(r)) ||
-    ["reviewer", "editor", "admin"].includes(profile?.role);
+  // Role-based links
+  const isAdmin = (profile?.roles || []).includes("admin") || profile?.role === "admin";
+  const isEditor = (profile?.roles || []).includes("editor") || profile?.role === "editor";
+  const isManager = (profile?.roles || []).includes("manager") || profile?.role === "manager";
+  const isReviewer = (profile?.roles || []).includes("reviewer") || profile?.role === "reviewer";
 
   return (
     <div>
@@ -136,19 +127,24 @@ const Dashboard = () => {
           <Link to="/submit-paper" className="bg-blue-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-800 transition font-medium">
             + Submit New Paper
           </Link>
-          {showAdminLink && (
+          {isAdmin && (
             <Link to="/admin" className="bg-gray-800 text-white text-sm px-4 py-2 rounded-lg hover:bg-gray-900 transition font-medium">
-              Admin Panel
+              🛡️ Admin Panel
             </Link>
           )}
-          {showContentLink && (
+          {isEditor && (
+            <Link to="/editor" className="bg-purple-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-800 transition font-medium">
+              📝 Editor Panel
+            </Link>
+          )}
+          {(isAdmin || isManager) && (
             <Link to="/site-content" className="bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-800 transition font-medium">
-              Manage Site Content
+              ⚙️ Manage Site Content
             </Link>
           )}
-          {showReviewerLink && (
-            <Link to="/reviewer" className="bg-purple-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-800 transition font-medium">
-              📝 Reviewer Panel
+          {isReviewer && (
+            <Link to="/reviewer" className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+              🔍 Reviewer Panel
             </Link>
           )}
         </div>
