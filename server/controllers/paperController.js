@@ -138,21 +138,23 @@ const getAllPapers = async (req, res) => {
     // Fetch counts for all statuses (for tabs)
     const countsData = await prisma.paper.groupBy({
       by: ['status'],
-      where: {
-        OR: isAdmin ? [] : [
-           { authorId: req.user.uid },
-           isEditor ? { status: { not: "published" } } : { authorId: req.user.uid }
-        ]
-      },
+      where: isAdmin || isEditor ? {} : { authorId: req.user.uid },
       _count: true
     });
 
-    // Special case for editor: they can see published if they filter, but counts above might exclude them.
-    // Let's simplify: return counts for all statuses the user HAS ACCESS TO.
-    
     const counts = {};
     countsData.forEach(c => { counts[c.status] = c._count; });
-    counts.total = Object.values(counts).reduce((a, b) => a + b, 0);
+    
+    // For editors, 'total' in the 'All' tab should match the papers they see (non-published)
+    // For admins, 'total' is everything.
+    if (isEditor && !isAdmin) {
+      counts.total = Object.entries(counts)
+        .filter(([status]) => status !== "published")
+        .reduce((sum, [_, count]) => sum + count, 0);
+      // We still want to see the published count in the specific tab, so counts.published stays.
+    } else {
+      counts.total = Object.values(counts).reduce((a, b) => a + b, 0);
+    }
 
     res.json({ papers, total: papers.length, counts });
   } catch (error) {
