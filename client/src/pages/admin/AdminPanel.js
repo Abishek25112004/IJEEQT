@@ -316,7 +316,12 @@ const AdminPanel = () => {
     } catch (e) { setErr(e.message); }
   };
 
-  const tabs = ["papers", "users", "reviewers", "stats"];
+  const tabs = ["stats", "papers", "users", "reviewers"];
+
+  const getPaperCount = (status) => {
+    if (status === "all") return papers.length;
+    return papers.filter(p => p.status === status).length;
+  };
 
   return (
     <div>
@@ -332,7 +337,7 @@ const AdminPanel = () => {
             {tabs.map((t) => (
               <button key={t} onClick={() => setActiveTab(t)}
                 className={`pb-3 text-sm font-medium capitalize border-b-2 transition-colors ${activeTab === t ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
-                {t}
+                {t} ({t === "papers" ? papers.length : t === "users" ? users.length : t === "reviewers" ? reviewerProfiles.length : "stats"})
               </button>
             ))}
           </div>
@@ -395,7 +400,7 @@ const AdminPanel = () => {
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      {f.label}
+                      {f.label} ({getPaperCount(f.id)})
                     </button>
                   ))}
                 </div>

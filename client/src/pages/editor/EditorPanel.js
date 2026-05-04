@@ -102,6 +102,7 @@ const EditorPanel = () => {
   const [expandedPaperIdForReviews, setExpandedPaperIdForReviews] = useState(null);
   const [expandedReviewId, setExpandedReviewId] = useState(null);
   const [selectedReviewersForPaper, setSelectedReviewersForPaper] = useState({});
+  const [counts, setCounts] = useState({});
 
   const load = async (statusFilter = "all") => {
     setLoading(true);
@@ -115,6 +116,7 @@ const EditorPanel = () => {
         adminAPI.getSubmittedReviews().catch(() => ({ reviews: [] })),
       ]);
       setPapers(papersRes.papers || []);
+      setCounts(papersRes.counts || {});
       setReviewers(reviewersRes.reviewers || []);
       setReviewerProfiles(profilesRes.profiles || []);
       setReviewAssignments(assignRes.assignments || []);
@@ -183,7 +185,7 @@ const EditorPanel = () => {
             {tabs.map((t) => (
               <button key={t} onClick={() => setActiveTab(t)}
                 className={`pb-3 text-sm font-medium capitalize border-b-2 transition-colors ${activeTab === t ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
-                {t}
+                {t} ({t === "papers" ? counts.total || 0 : t === "reviewers" ? reviewerProfiles.length : 0})
               </button>
             ))}
           </div>
@@ -212,7 +214,7 @@ const EditorPanel = () => {
                         paperStatusFilter === f.id ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      {f.label}
+                      {f.label} ({f.id === "all" ? counts.total || 0 : counts[f.id] || 0})
                     </button>
                   ))}
                 </div>
