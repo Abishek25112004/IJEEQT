@@ -23,8 +23,9 @@ function createTransporter() {
  * @param {string} subject - Email subject
  * @param {string} heading - Main heading in the email body
  * @param {string} bodyHtml - HTML content for the email body section
+ * @param {string} [fromOverride] - Optional sender email override
  */
-async function sendEmail(to, subject, heading, bodyHtml) {
+async function sendEmail(to, subject, heading, bodyHtml, fromOverride) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn("⚠️ SMTP not configured — skipping email to:", to);
     return;
@@ -56,8 +57,9 @@ async function sendEmail(to, subject, heading, bodyHtml) {
 
   try {
     await transporter.sendMail({
-      from: `"${JOURNAL_NAME}" <${process.env.SMTP_USER}>`,
+      from: fromOverride ? `"${JOURNAL_NAME}" <${fromOverride}>` : `"${JOURNAL_NAME}" <${process.env.SMTP_USER}>`,
       to,
+      replyTo: fromOverride || process.env.SMTP_USER,
       subject: `${JOURNAL_NAME} — ${subject}`,
       html,
     });
@@ -94,7 +96,8 @@ async function notifyReviewerAssigned(reviewerEmail, reviewerName, paperTitle) {
           Open Reviewer Panel
         </a>
       </div>
-    `
+    `,
+    "reviews@ijeeqt.org"
   );
 }
 
@@ -117,7 +120,8 @@ async function notifyAdminAssignmentResponse(adminEmail, reviewerName, paperTitl
         <p style="color: #1e293b; font-size: 14px; font-weight: 600; margin: 0 0 8px;">${paperTitle}</p>
         <p style="margin: 0; font-size: 14px; color: ${statusColor}; font-weight: 700;">${statusLabel}</p>
       </div>
-    `
+    `,
+    "reviews@ijeeqt.org"
   );
 }
 
@@ -150,7 +154,8 @@ async function notifyAdminReviewSubmitted(adminEmail, reviewerName, paperTitle, 
           View in Admin Panel
         </a>
       </div>
-    `
+    `,
+    "reviews@ijeeqt.org"
   );
 }
 

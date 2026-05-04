@@ -121,14 +121,9 @@ const respondToAssignment = async (req, res) => {
       data: { status, respondedAt: new Date() },
     });
 
-    // Notify admins/editors
-    const admins = await prisma.user.findMany({
-      where: { roles: { hasSome: ["admin", "editor"] } },
-      select: { email: true },
-    });
-    for (const admin of admins) {
-      notifyAdminAssignmentResponse(admin.email, req.user.name, assignment.paper.title, status).catch(() => {});
-    }
+    // Notify the central reviews email ONLY
+    notifyAdminAssignmentResponse("reviews@ijeeqt.org", req.user.name, assignment.paper.title, status).catch(() => {});
+
 
     res.json({ message: `Assignment ${status} successfully` });
   } catch (error) {
@@ -189,14 +184,9 @@ const submitReview = async (req, res) => {
       },
     });
 
-    // Notify admins
-    const admins = await prisma.user.findMany({
-      where: { roles: { hasSome: ["admin", "editor"] } },
-      select: { email: true },
-    });
-    for (const admin of admins) {
-      notifyAdminReviewSubmitted(admin.email, req.user.name, paper?.title || "Unknown", decision).catch(() => {});
-    }
+    // Notify the central reviews email ONLY
+    notifyAdminReviewSubmitted("reviews@ijeeqt.org", req.user.name, paper?.title || "Unknown", decision).catch(() => {});
+
 
     res.status(201).json({ message: "Review submitted successfully", reviewId: review.id });
   } catch (error) {
