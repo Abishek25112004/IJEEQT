@@ -56,7 +56,7 @@ const Login = () => {
     const iv = setInterval(() => setResendTimer((t) => { if (t <= 1) { clearInterval(iv); return 0; } return t - 1; }), 1000);
   };
 
-  // ── Step 1: Send OTP ───────────────────────────────────────────────────
+  // ── Step 1: Verify Password and Send OTP ────────────────────────────────
   const handleCredentials = async (e) => {
     e.preventDefault();
     setError("");
@@ -64,12 +64,29 @@ const Login = () => {
     if (!password) { setError("Password is required."); return; }
     setLoading(true);
     try {
+      // 1. Verify password FIRST without changing Auth SDK state
+      const apiKey = process.env.REACT_APP_FIREBASE_API_KEY;
+      const verifyRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, returnSecureToken: true }),
+        }
+      );
+      
+      if (!verifyRes.ok) {
+        throw new Error("Invalid email or password.");
+      }
+
+      // 2. Password is correct, now send OTP
       await authAPI.sendOtp(email);
+      
       setStep(2);
       startResendTimer();
       setSuccess("OTP sent to " + email + ". Please check your inbox.");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to verify credentials.");
     } finally {
       setLoading(false);
     }
