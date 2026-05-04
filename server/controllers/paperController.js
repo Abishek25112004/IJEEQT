@@ -3,6 +3,7 @@
 
 const prisma = require("../config/db");
 const cloudinary = require("../config/cloudinary");
+const { notifyAuthorSubmissionReceived, notifyAuthorStatusUpdate } = require("../utils/mailer");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 
@@ -85,6 +86,9 @@ const submitPaper = async (req, res) => {
     const paper = await prisma.paper.create({
       data: paperData
     });
+
+    // Notify author of submission
+    notifyAuthorSubmissionReceived(paper.authorEmail, paper.authorName, paper.title).catch(() => {});
 
     res.status(201).json({
       message: "Paper submitted successfully",
@@ -250,10 +254,15 @@ const updatePaperStatus = async (req, res) => {
     if (comments) updates.editorComments = comments;
     if (year) updates.year = Number(year);
 
-    await prisma.paper.update({
+    const updatedPaper = await prisma.paper.update({
       where: { id },
       data: updates
     });
+
+    // Notify author if status is accepted, rejected, published, or revision_required
+    if (["accepted", "rejected", "published", "revision_required"].includes(status)) {
+      notifyAuthorStatusUpdate(updatedPaper.authorEmail, updatedPaper.authorName, updatedPaper.title, status).catch(() => {});
+    }
 
     res.json({ message: `Paper status updated to: ${status}` });
   } catch (error) {

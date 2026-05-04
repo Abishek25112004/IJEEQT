@@ -159,9 +159,85 @@ async function notifyAdminReviewSubmitted(adminEmail, reviewerName, paperTitle, 
   );
 }
 
+/**
+ * Notify author that their submission was received
+ */
+async function notifyAuthorSubmissionReceived(authorEmail, authorName, paperTitle) {
+  await sendEmail(
+    authorEmail,
+    "Submission Received",
+    "📄 Paper Submission Received",
+    `
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        Dear <strong>${authorName}</strong>,
+      </p>
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        Thank you for submitting your paper to ${JOURNAL_NAME}. We have successfully received your manuscript:
+      </p>
+      <div style="background: #f1f5f9; border-left: 4px solid #3b82f6; border-radius: 8px; padding: 16px; margin: 0 0 16px;">
+        <p style="color: #1e293b; font-size: 15px; font-weight: 600; margin: 0;">${paperTitle}</p>
+      </div>
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        Your paper is now under preliminary review. We will notify you when its status changes.
+      </p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/dashboard"
+           style="display: inline-block; background: #1d4ed8; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          Go to Dashboard
+        </a>
+      </div>
+    `,
+    "submissions@ijeeqt.org"
+  );
+}
+
+/**
+ * Notify author of a status update (accepted, rejected, published, etc.)
+ */
+async function notifyAuthorStatusUpdate(authorEmail, authorName, paperTitle, newStatus) {
+  const statusLabels = {
+    under_review: "Under Review",
+    revision_required: "Revision Required",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    published: "Published",
+  };
+  const label = statusLabels[newStatus] || newStatus;
+
+  await sendEmail(
+    authorEmail,
+    `Paper Status Update: ${label}`,
+    "📝 Paper Status Update",
+    `
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        Dear <strong>${authorName}</strong>,
+      </p>
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        There has been an update regarding your submitted paper:
+      </p>
+      <div style="background: #f1f5f9; border-radius: 8px; padding: 16px; margin: 0 0 16px;">
+        <p style="color: #1e293b; font-size: 14px; font-weight: 600; margin: 0 0 8px;">${paperTitle}</p>
+        <p style="margin: 0; font-size: 14px; font-weight: 700;">New Status: <span style="color: #1d4ed8;">${label}</span></p>
+      </div>
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        Please log in to your Author Dashboard for more details.
+      </p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/dashboard"
+           style="display: inline-block; background: #1d4ed8; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          Open Dashboard
+        </a>
+      </div>
+    `,
+    "submissions@ijeeqt.org"
+  );
+}
+
 module.exports = {
   sendEmail,
   notifyReviewerAssigned,
   notifyAdminAssignmentResponse,
   notifyAdminReviewSubmitted,
+  notifyAuthorSubmissionReceived,
+  notifyAuthorStatusUpdate,
 };
