@@ -97,6 +97,10 @@ export const paymentsAPI = {
   verify: (data) => api.post("/payments/verify", data),
   getMyPayments: () => api.get("/payments/my-payments"),
 };
+// ─── Contact ───────────────────────────────────────────────────────────────────
+export const contactAPI = {
+  submitForm: (data) => api.post("/contact", data),
+};
 
 // ─── Site Content ─────────────────────────────────────────────────────────────
 export const contentAPI = {

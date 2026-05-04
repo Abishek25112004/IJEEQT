@@ -38,6 +38,7 @@ app.use("/api/reviewer", require("./routes/reviewer"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/payments", require("./routes/payments"));
 app.use("/api/content", require("./routes/content"));
+app.use("/api/contact", require("./routes/contact"));
 
 // Health check
 app.get("/api/health", (req, res) => {

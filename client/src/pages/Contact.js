@@ -1,12 +1,13 @@
 // src/pages/Contact.js
 import React, { useState, useEffect } from "react";
 import { PageHero, Alert, Card, Spinner } from "../components/common";
-import { contentAPI } from "../services/api";
+import { contentAPI, contactAPI } from "../services/api";
 
 const Contact = () => {
-  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "", isSubmission: false, paperId: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [contacts, setContacts] = useState([
     { icon: "📧", label: "Editorial Email", value: "editor@ijart.org" },
@@ -24,14 +25,29 @@ const Contact = () => {
       .finally(() => setLoadingContacts(false));
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate submission (connect to backend/email service as needed)
-    setTimeout(() => {
-      setSubmitted(true);
+    setError("");
+    
+    if (form.isSubmission && !form.paperId.trim()) {
+      setError("Please provide your Paper ID.");
       setLoading(false);
-    }, 1000);
+      return;
+    }
+
+    try {
+      await contactAPI.submitForm(form);
+      setSubmitted(true);
+      setForm({ name: "", email: "", subject: "", message: "", isSubmission: false, paperId: "" });
+      
+      // Auto-hide the success message after 5 seconds
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (err) {
+      setError(err.message || "Failed to send message. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,13 +89,16 @@ const Contact = () => {
         <div>
           <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3 mb-5">Send a Message</h2>
 
-          {submitted ? (
-            <Alert
-              type="success"
-              message="Your message has been sent! Our editorial team will respond within 2–3 business days."
-            />
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          {submitted && (
+            <div className="mb-4">
+              <Alert
+                type="success"
+                message="Your message has been sent! Our team will respond within 2–3 business days."
+              />
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
               {[
                 { name: "name", label: "Your Name", type: "text", placeholder: "Dr. Jane Doe" },
                 { name: "email", label: "Email Address", type: "email", placeholder: "jane@university.edu" },
@@ -97,7 +116,35 @@ const Contact = () => {
                   />
                 </div>
               ))}
-              <div>
+
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="isSubmission"
+                  checked={form.isSubmission}
+                  onChange={(e) => setForm((p) => ({ ...p, isSubmission: e.target.checked, paperId: e.target.checked ? p.paperId : "" }))}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="isSubmission" className="text-sm font-medium text-gray-700">
+                  Is this related to a specific paper submission?
+                </label>
+              </div>
+
+              {form.isSubmission && (
+                <div className="mt-2 animate-fade-in">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Paper ID <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={form.paperId}
+                    onChange={(e) => setForm((p) => ({ ...p, paperId: e.target.value }))}
+                    placeholder="e.g. 5f8d0a... or your paper title"
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+              )}
+
+              <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                 <textarea
                   value={form.message}
@@ -108,6 +155,9 @@ const Contact = () => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
               </div>
+
+              {error && <Alert type="error" message={error} onClose={() => setError("")} />}
+
               <button
                 type="submit"
                 disabled={loading}
@@ -116,7 +166,6 @@ const Contact = () => {
                 {loading ? "Sending..." : "Send Message"}
               </button>
             </form>
-          )}
         </div>
       </div>
     </div>
