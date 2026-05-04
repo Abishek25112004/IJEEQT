@@ -560,7 +560,7 @@ const ReviewerPanel = () => {
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      {f.label}
+                      {f.label} ({f.id === "all" ? assignments.length : f.id === "pending" ? stats.pending : f.id === "accepted" ? stats.accepted : stats.reviewed})
                     </button>
                   ))}
                 </div>

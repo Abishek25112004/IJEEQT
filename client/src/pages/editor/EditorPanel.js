@@ -249,7 +249,7 @@ const EditorPanel = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             {["submitted", "under_review"].includes(p.status) && (
                               <ReviewerMultiSelect 
-                                availableReviewers={reviewers}
+                                availableReviewers={reviewers.filter(r => (r.roles || [r.role]).includes("reviewer"))}
                                 selected={localReviewers}
                                 onChange={(newSelection) => setSelectedReviewersForPaper(prev => ({ ...prev, [p.id]: newSelection }))}
                               />
