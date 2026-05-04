@@ -55,7 +55,8 @@ const sendOtp = async (req, res) => {
     const transporter = createTransporter();
 
     await transporter.sendMail({
-      from: `"${journalName}" <${process.env.SMTP_USER}>`,
+      from: `"${journalName}" <editorsinchief@ijeeqt.org>`,
+      replyTo: "editorsinchief@ijeeqt.org",
       to: email,
       subject: `Your OTP for ${journalName} — Expires in 5 minutes`,
       html: `
