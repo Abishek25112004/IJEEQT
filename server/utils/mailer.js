@@ -17,7 +17,7 @@ function createTransporter() {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      family: 4, // 🔴 HARD-FORCES IPv4 directly at the socket level
+      localAddress: "0.0.0.0", // 🔴 FORCES IPv4 BIND, completely blocking IPv6 
       connectionTimeout: 10000,
       socketTimeout: 15000,
       tls: {
