@@ -17,12 +17,15 @@ function createTransporter() {
   
   if (isGmail) {
     return nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 10000, // Fail fast after 10s
+      family: 4, // 🔴 HARD-FORCES IPv4 directly at the socket level
+      connectionTimeout: 10000,
       socketTimeout: 15000,
       tls: {
         rejectUnauthorized: false
