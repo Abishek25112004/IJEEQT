@@ -2,6 +2,9 @@
 // Handles sending and verifying email OTPs — strictly via email, no UI exposure
 
 const nodemailer = require("nodemailer");
+const dns = require("node:dns");
+const { promisify } = require("util");
+const resolve4 = promisify(dns.resolve4);
 
 // In-memory OTP store: { email -> { otp, expiresAt, attempts } }
 const otpStore = new Map();
@@ -10,24 +13,38 @@ const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_ATTEMPTS = 5; // rate-limit wrong guesses
 
 /**
- * Create a nodemailer transporter from env vars
+ * Create a nodemailer transporter from env vars.
+ * For Gmail: manually resolves IPv4 to bypass Render's broken IPv6 routing.
  */
-function createTransporter() {
+async function createTransporter() {
   const isGmail = (process.env.SMTP_HOST || "smtp.gmail.com").includes("gmail");
   
   if (isGmail) {
+    // Manually resolve smtp.gmail.com to an IPv4 address
+    // This bypasses Render's DNS which returns unreachable IPv6 addresses
+    let host = "smtp.gmail.com";
+    try {
+      const addresses = await resolve4("smtp.gmail.com");
+      if (addresses && addresses.length > 0) {
+        host = addresses[0]; // Use the raw IPv4 IP (e.g. "142.250.x.x")
+        console.log(`📧 Resolved smtp.gmail.com to IPv4: ${host}`);
+      }
+    } catch (dnsErr) {
+      console.warn("⚠️ Could not resolve smtp.gmail.com to IPv4, using hostname:", dnsErr.message);
+    }
+
     return nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: host,
       port: 465,
       secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      localAddress: "0.0.0.0", // 🔴 FORCES IPv4 BIND, completely blocking IPv6 
       connectionTimeout: 10000,
       socketTimeout: 15000,
       tls: {
+        servername: "smtp.gmail.com", // Required for TLS when connecting via IP
         rejectUnauthorized: false
       }
     });
@@ -72,7 +89,7 @@ const sendOtp = async (req, res) => {
   const journalName = process.env.JOURNAL_NAME || "IJEEQT";
 
   try {
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
 
     await transporter.sendMail({
       from: `"${journalName}" <editorsinchief@ijeeqt.org>`,

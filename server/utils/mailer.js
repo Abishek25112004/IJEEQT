@@ -2,25 +2,39 @@
 // Shared email utility using nodemailer — reused across OTP, reviewer notifications, etc.
 
 const nodemailer = require("nodemailer");
+const dns = require("node:dns");
+const { promisify } = require("util");
+const resolve4 = promisify(dns.resolve4);
 
 const JOURNAL_NAME = process.env.JOURNAL_NAME || "IJEEQT";
 
-function createTransporter() {
+async function createTransporter() {
   const isGmail = (process.env.SMTP_HOST || "smtp.gmail.com").includes("gmail");
   
   if (isGmail) {
+    let host = "smtp.gmail.com";
+    try {
+      const addresses = await resolve4("smtp.gmail.com");
+      if (addresses && addresses.length > 0) {
+        host = addresses[0];
+        console.log(`📧 Resolved smtp.gmail.com to IPv4: ${host}`);
+      }
+    } catch (dnsErr) {
+      console.warn("⚠️ Could not resolve smtp.gmail.com to IPv4, using hostname:", dnsErr.message);
+    }
+
     return nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: host,
       port: 465,
       secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      localAddress: "0.0.0.0", // 🔴 FORCES IPv4 BIND, completely blocking IPv6 
       connectionTimeout: 10000,
       socketTimeout: 15000,
       tls: {
+        servername: "smtp.gmail.com",
         rejectUnauthorized: false
       }
     });
@@ -51,7 +65,7 @@ async function sendEmail(to, subject, heading, bodyHtml, fromOverride) {
     return;
   }
 
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
 
   const html = `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 580px; margin: 0 auto; background: #f8fafc; border-radius: 16px; overflow: hidden;">
