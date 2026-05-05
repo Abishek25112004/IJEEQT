@@ -22,6 +22,11 @@ function createTransporter() {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      connectionTimeout: 10000, // Fail fast after 10s
+      socketTimeout: 15000,
+      tls: {
+        rejectUnauthorized: false
+      }
     });
   }
 

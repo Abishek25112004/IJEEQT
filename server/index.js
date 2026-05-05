@@ -1,6 +1,9 @@
 // index.js — Main Express server entry point
 require("dotenv").config();
 
+// Force IPv4 DNS resolution (Fixes NodeMailer hanging on Render due to IPv6 drops)
+require('node:dns').setDefaultResultOrder('ipv4first');
+
 const express = require("express");
 const cors = require("cors");
 const { errorHandler } = require("./middleware/errorHandler");
