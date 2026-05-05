@@ -105,7 +105,7 @@ const Contact = () => {
                 { name: "subject", label: "Subject", type: "text", placeholder: "Query about submission" },
               ].map((f) => (
                 <div key={f.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{f.label} <span className="text-red-500">*</span></label>
                   <input
                     type={f.type}
                     value={form[f.name]}
@@ -145,7 +145,7 @@ const Contact = () => {
               )}
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message <span className="text-red-500">*</span></label>
                 <textarea
                   value={form.message}
                   onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
