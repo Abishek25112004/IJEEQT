@@ -6,8 +6,20 @@ const nodemailer = require("nodemailer");
 const JOURNAL_NAME = process.env.JOURNAL_NAME || "IJEEQT";
 
 function createTransporter() {
+  const isGmail = (process.env.SMTP_HOST || "smtp.gmail.com").includes("gmail");
+  
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
+
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || "587"),
     secure: process.env.SMTP_SECURE === "true",
     auth: {
