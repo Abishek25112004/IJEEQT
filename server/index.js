@@ -14,7 +14,26 @@ const PORT = process.env.PORT || 5000;
 // ─── Middleware ────────────────────────────────────────────────────────────────
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Automatically accept any variation of ijeeqt.org (with or without www), vercel domains, and localhost
+    if (
+      origin.includes("ijeeqt.org") || 
+      origin.includes("vercel.app") || 
+      origin.startsWith("http://localhost:")
+    ) {
+      return callback(null, true);
+    }
+
+    const clientUrl = (process.env.CLIENT_URL || "").replace(/\/$/, ""); // removes trailing slash if user added it accidentally
+    if (origin === clientUrl) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 
