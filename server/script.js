@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.siteContent.findUnique({where: {key: 'call_for_papers'}}).then(console.log).finally(() => prisma.$disconnect());
