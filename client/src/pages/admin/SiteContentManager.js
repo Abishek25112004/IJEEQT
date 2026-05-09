@@ -204,10 +204,11 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
   });
 
   useEffect(() => {
-    if (data?.importantDates) {
+    if (data) {
       setForm(prev => ({
         ...prev,
-        importantDates: data.importantDates.map(d => ({ ...d, uId: d.uId || generateId() }))
+        ...data,
+        importantDates: data.importantDates ? data.importantDates.map(d => ({ ...d, uId: d.uId || generateId() })) : prev.importantDates,
       }));
     }
   }, [data]);
