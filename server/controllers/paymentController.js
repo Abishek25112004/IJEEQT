@@ -113,13 +113,27 @@ const verifyPayment = async (req, res) => {
       return res.status(404).json({ error: "Payment record not found" });
     }
 
-    await prisma.payment.update({
+    const updatedPayment = await prisma.payment.update({
       where: { id: payment.id },
       data: {
         razorpayPaymentId: razorpay_payment_id,
         status: "paid",
+      },
+      include: {
+        paper: {
+          include: { author: true }
+        }
       }
     });
+
+    const mailer = require("../utils/mailer");
+    await mailer.notifyPaymentSuccess(
+      updatedPayment.paper.author.email,
+      updatedPayment.paper.author.name,
+      updatedPayment.paper.title,
+      `INR ${updatedPayment.amount}`,
+      razorpay_payment_id
+    );
 
     res.json({ message: "Payment verified successfully", paymentId: razorpay_payment_id });
   } catch (error) {

@@ -318,6 +318,40 @@ async function notifyAuthorStatusUpdate(authorEmail, authorName, paperTitle, new
   );
 }
 
+/**
+ * Notify author of a successful payment
+ */
+async function notifyPaymentSuccess(authorEmail, authorName, paperTitle, amountPaid, orderId) {
+  await sendEmail(
+    authorEmail,
+    "Payment Received - Article Processing Charge",
+    "✅ Payment Successful",
+    `
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        Dear <strong>${authorName}</strong>,
+      </p>
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        We have successfully received your payment for the Article Processing Charge (APC).
+      </p>
+      <div style="background: #f1f5f9; border-radius: 8px; padding: 16px; margin: 0 0 16px;">
+        <p style="color: #1e293b; font-size: 14px; font-weight: 600; margin: 0 0 8px;">${paperTitle}</p>
+        <p style="margin: 0; font-size: 14px; margin-bottom: 4px;"><strong>Amount Paid:</strong> ${amountPaid}</p>
+        <p style="margin: 0; font-size: 14px;"><strong>Transaction ID:</strong> ${orderId}</p>
+      </div>
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        Your paper is now in the final queue for publication. We will notify you once it is published and available online.
+      </p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/dashboard"
+           style="display: inline-block; background: #16a34a; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          View in Dashboard
+        </a>
+      </div>
+    `,
+    "editorinchief@ijeeqt.org"
+  );
+}
+
 module.exports = {
   sendEmail,
   sendViaBrevo,
@@ -326,4 +360,5 @@ module.exports = {
   notifyAdminReviewSubmitted,
   notifyAuthorSubmissionReceived,
   notifyAuthorStatusUpdate,
+  notifyPaymentSuccess,
 };

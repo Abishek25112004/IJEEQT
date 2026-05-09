@@ -210,17 +210,25 @@ const Dashboard = () => {
             )}
             {filteredPapers.length > 0 ? (
               <div className="space-y-4">
-                {filteredPapers.map((p) => (
+                {filteredPapers.map((p) => {
+                  const isPaid = payments.some(pay => pay.paperId === p.id && pay.status === "paid");
+                  return (
                   <div key={p.id} className="relative">
                     <PaperCard paper={p} showStatus searchTerm={paperSearch} />
-                    {p.status === "accepted" && p.paymentStatus !== "paid" && (
+                    {p.status === "accepted" && !isPaid && (
                       <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
                         <p className="text-sm text-yellow-800">⚠️ Paper accepted! Pay APC (₹{apcAmount.toLocaleString()}) to proceed to publication.</p>
                         <button onClick={() => handlePayment(p)} className="bg-yellow-500 text-white text-xs px-3 py-1.5 rounded font-medium hover:bg-yellow-600">Pay Now</button>
                       </div>
                     )}
+                    {p.status === "accepted" && isPaid && (
+                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+                        <p className="text-sm text-green-800 font-medium">✅ Payment Completed! Your paper is in queue for publication.</p>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <EmptyState
