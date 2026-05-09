@@ -76,7 +76,9 @@ const createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating payment order:", error);
-    res.status(500).json({ error: "Internal server error" });
+    // Send back the specific Razorpay error if it exists, otherwise a generic one
+    const errorMessage = error.error?.description || error.message || "Internal server error";
+    res.status(500).json({ error: errorMessage });
   }
 };
 
