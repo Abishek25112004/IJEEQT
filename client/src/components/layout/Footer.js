@@ -35,8 +35,6 @@ const Footer = () => {
               research across all domains of engineering, science, and technology.
             </p>
             <div className="text-xs text-gray-500 space-y-1">
-              <p>ISSN (Online): 2XXX-XXXX</p>
-              <p>ISSN (Print): 2XXX-XXXX</p>
               <p>Frequency: Quarterly</p>
               <p>Publisher: Academic Research Press</p>
             </div>

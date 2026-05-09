@@ -36,7 +36,7 @@ const Navbar = () => {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       {/* Top bar */}
       <div className="bg-blue-900 text-white text-xs py-1 px-4 flex justify-between items-center">
-        <span>ISSN: 2XXX-XXXX (Online) | 2XXX-XXXX (Print)</span>
+        <span>{process.env.REACT_APP_JOURNAL_NAME || "International Journal of Engineering Excellence in Quantum Technology"}</span>
         <span>Impact Factor: 4.52 | Indexed: Scopus, Web of Science</span>
       </div>
 
