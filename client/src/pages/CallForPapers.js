@@ -108,13 +108,39 @@ const CallForPapers = () => {
           <p>• All submissions will be plagiarism-checked (iThenticate).</p>
           <p>• Blind review: author details must not appear in the submitted manuscript.</p>
         </div>
+      </Card>
+
+      {/* Publication Fee */}
+      <Card className="p-5">
+        <h2 className="text-base font-bold text-blue-800 mb-3">💰 Article Processing Charge (APC)</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Once your paper is accepted, the following one-time publication fee applies:
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+            <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-1">Indian Authors</p>
+            <p className="text-2xl font-bold text-blue-800">₹5,000</p>
+            <p className="text-xs text-gray-500 mt-1">INR (incl. GST)</p>
+          </div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
+            <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wider mb-1">International Authors</p>
+            <p className="text-2xl font-bold text-emerald-800">$50</p>
+            <p className="text-xs text-gray-500 mt-1">USD</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mt-3">
+          Payment is processed securely via Razorpay after acceptance. No fees are charged during submission or review.
+        </p>
+      </Card>
+
+      <div className="text-center">
         <Link
           to="/submit-paper"
-          className="mt-5 inline-flex items-center gap-2 bg-blue-700 text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-blue-800 transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-700 text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-blue-800 transition-colors"
         >
           Submit Your Paper →
         </Link>
-      </Card>
+      </div>
     </div>
   </div>
   );

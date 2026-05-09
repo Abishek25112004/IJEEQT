@@ -236,6 +236,32 @@ async function notifyAuthorStatusUpdate(authorEmail, authorName, paperTitle, new
   };
   const label = statusLabels[newStatus] || newStatus;
 
+  // Extra content for accepted papers — include APC info
+  const acceptedPaymentBlock = newStatus === "accepted" ? `
+      <div style="background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 0 0 16px;">
+        <p style="color: #92400e; font-size: 14px; font-weight: 700; margin: 0 0 8px;">💰 Article Processing Charge (APC)</p>
+        <p style="color: #78350f; font-size: 14px; margin: 0 0 4px;">
+          To proceed with publication, please pay the APC of <strong>₹5,000</strong> (Indian Authors) / <strong>$50</strong> (International Authors).
+        </p>
+        <p style="color: #92400e; font-size: 12px; margin: 0;">
+          Payment can be made securely via Razorpay from your Dashboard.
+        </p>
+      </div>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/dashboard"
+           style="display: inline-block; background: #f59e0b; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px;">
+          💳 Pay Now & Proceed
+        </a>
+      </div>
+  ` : `
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/dashboard"
+           style="display: inline-block; background: #1d4ed8; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          Open Dashboard
+        </a>
+      </div>
+  `;
+
   await sendEmail(
     authorEmail,
     `Paper Status Update: ${label}`,
@@ -251,15 +277,16 @@ async function notifyAuthorStatusUpdate(authorEmail, authorName, paperTitle, new
         <p style="color: #1e293b; font-size: 14px; font-weight: 600; margin: 0 0 8px;">${paperTitle}</p>
         <p style="margin: 0; font-size: 14px; font-weight: 700;">New Status: <span style="color: #1d4ed8;">${label}</span></p>
       </div>
+      ${newStatus === "accepted" ? `
+      <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+        🎉 <strong>Congratulations!</strong> Your paper has been accepted for publication in ${JOURNAL_NAME}.
+      </p>
+      ` : `
       <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
         Please log in to your Author Dashboard for more details.
       </p>
-      <div style="text-align: center; margin: 24px 0;">
-        <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/dashboard"
-           style="display: inline-block; background: #1d4ed8; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-          Open Dashboard
-        </a>
-      </div>
+      `}
+      ${acceptedPaymentBlock}
     `,
     "submissions@ijeeqt.org"
   );
