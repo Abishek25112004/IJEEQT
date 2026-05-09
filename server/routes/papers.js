@@ -40,4 +40,73 @@ router.delete("/:id", verifyToken, asyncHandler(deletePaper));
 router.patch("/:id/status", verifyToken, requireRole(["admin", "editor"]), asyncHandler(updatePaperStatus));
 router.patch("/:id/assign-reviewer", verifyToken, requireRole(["admin", "editor"]), asyncHandler(assignReviewer));
 
+// ─── PDF Download Proxy (bypasses Cloudinary CORS) ─────────────────────────────
+// Authenticated download — any logged-in user with access to the paper
+router.get("/:id/download", verifyToken, asyncHandler(async (req, res) => {
+  const prisma = require("../config/db");
+  const paper = await prisma.paper.findUnique({ where: { id: req.params.id } });
+
+  if (!paper || !paper.fileUrl) {
+    return res.status(404).json({ error: "Paper or file not found" });
+  }
+
+  // Fetch PDF from Cloudinary
+  const response = await fetch(paper.fileUrl);
+  if (!response.ok) {
+    return res.status(502).json({ error: "Failed to fetch file from storage" });
+  }
+
+  const fileName = paper.title
+    ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
+    : 'paper.pdf';
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+  // Stream the response body to the client
+  const reader = response.body.getReader();
+  const pump = async () => {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+    res.end();
+  };
+  await pump();
+}));
+
+// Public download for published papers (no auth needed)
+router.get("/:id/download-public", asyncHandler(async (req, res) => {
+  const prisma = require("../config/db");
+  const paper = await prisma.paper.findUnique({ where: { id: req.params.id } });
+
+  if (!paper || !paper.fileUrl || paper.status !== "published") {
+    return res.status(404).json({ error: "Published paper or file not found" });
+  }
+
+  const response = await fetch(paper.fileUrl);
+  if (!response.ok) {
+    return res.status(502).json({ error: "Failed to fetch file from storage" });
+  }
+
+  const fileName = paper.title
+    ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
+    : 'paper.pdf';
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+  const reader = response.body.getReader();
+  const pump = async () => {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+    res.end();
+  };
+  await pump();
+}));
+
 module.exports = router;

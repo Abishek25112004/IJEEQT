@@ -26,7 +26,13 @@ api.interceptors.request.use(
 
 // Response interceptor — normalize errors
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // For blob responses (file downloads), return the raw data
+    if (response.config.responseType === 'blob') {
+      return response.data;
+    }
+    return response.data;
+  },
   (error) => {
     const message =
       error.response?.data?.error ||
@@ -59,6 +65,9 @@ export const papersAPI = {
   assignReviewer: (id, reviewerId) =>
     api.patch(`/papers/${id}/assign-reviewer`, { reviewerId }),
   delete: (id) => api.delete(`/papers/${id}`),
+  // PDF download via backend proxy (bypasses Cloudinary CORS)
+  download: (id) => api.get(`/papers/${id}/download`, { responseType: 'blob' }),
+  downloadPublic: (id) => api.get(`/papers/${id}/download-public`, { responseType: 'blob' }),
 };
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────

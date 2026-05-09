@@ -627,14 +627,23 @@ const ReviewerPanel = () => {
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
+                                  const fileName = a.paper.title
+                                    ? a.paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
+                                    : 'paper.pdf';
                                   try {
-                                    const res = await fetch(a.paper.fileUrl);
-                                    if (!res.ok) throw new Error("Network error");
+                                    const { auth } = await import("../services/firebase");
+                                    const user = auth.currentUser;
+                                    const token = user ? await user.getIdToken() : null;
+                                    const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+                                    const res = await fetch(`${API_URL}/papers/${a.paperId}/download`, {
+                                      headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                    });
+                                    if (!res.ok) throw new Error("Download failed");
                                     const blob = await res.blob();
                                     const blobUrl = window.URL.createObjectURL(blob);
                                     const link = document.createElement("a");
                                     link.href = blobUrl;
-                                    link.download = `${a.paper.title ? a.paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'paper'}.pdf`;
+                                    link.download = fileName;
                                     document.body.appendChild(link);
                                     link.click();
                                     link.remove();

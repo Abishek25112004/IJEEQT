@@ -3,6 +3,47 @@
 
 import React from "react";
 
+// ─── PDF download helper (uses backend proxy to bypass Cloudinary CORS) ──────
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
+async function downloadPaperPdf(paper) {
+  const fileName = paper.title
+    ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
+    : 'paper.pdf';
+
+  try {
+    const { auth } = await import("../services/firebase");
+    const user = auth.currentUser;
+    let blob;
+
+    if (user) {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_URL}/papers/${paper.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Auth download failed");
+      blob = await res.blob();
+    } else {
+      const res = await fetch(`${API_URL}/papers/${paper.id}/download-public`);
+      if (!res.ok) throw new Error("Public download failed");
+      blob = await res.blob();
+    }
+
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    if (paper.fileUrl) {
+      window.open(paper.fileUrl, "_blank");
+    }
+  }
+}
+
 // ─── Highlight Text ─────────────────────────────────────────────────────────────
 export const HighlightText = ({ text, highlight }) => {
   if (!highlight || !highlight.trim() || !text) {
@@ -166,23 +207,9 @@ export const PaperCard = ({ paper, showStatus = false, searchTerm = "" }) => {
         </span>
         {paper.fileUrl && (
           <button
-            onClick={async (e) => {
+            onClick={(e) => {
               e.stopPropagation();
-              try {
-                const res = await fetch(paper.fileUrl);
-                if (!res.ok) throw new Error("Network error");
-                const blob = await res.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = blobUrl;
-                link.download = `${paper.title ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'paper'}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(blobUrl);
-              } catch (err) {
-                window.open(paper.fileUrl, "_blank");
-              }
+              downloadPaperPdf(paper);
             }}
             className="text-xs text-blue-600 hover:underline flex items-center gap-1"
           >
