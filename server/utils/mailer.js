@@ -6,6 +6,26 @@ const JOURNAL_NAME = process.env.JOURNAL_NAME || "IJEEQT";
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 /**
+ * Fetch APC amounts from the database (call_for_papers content)
+ */
+async function getApcAmounts() {
+  try {
+    const prisma = require("../config/db");
+    const content = await prisma.siteContent.findUnique({ where: { key: "call_for_papers" } });
+    if (content?.value) {
+      const cfp = typeof content.value === "string" ? JSON.parse(content.value) : content.value;
+      return {
+        indianAmount: cfp.indianAmount || 5000,
+        internationalAmount: cfp.internationalAmount || 50,
+      };
+    }
+  } catch (e) {
+    console.warn("Could not fetch APC amounts:", e.message);
+  }
+  return { indianAmount: 5000, internationalAmount: 50 };
+}
+
+/**
  * Send an email via Brevo's transactional HTTP API.
  * @param {object} options
  * @param {string} options.to - Recipient email
@@ -237,11 +257,14 @@ async function notifyAuthorStatusUpdate(authorEmail, authorName, paperTitle, new
   const label = statusLabels[newStatus] || newStatus;
 
   // Extra content for accepted papers — include APC info
-  const acceptedPaymentBlock = newStatus === "accepted" ? `
+  let acceptedPaymentBlock = "";
+  if (newStatus === "accepted") {
+    const apc = await getApcAmounts();
+    acceptedPaymentBlock = `
       <div style="background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 0 0 16px;">
         <p style="color: #92400e; font-size: 14px; font-weight: 700; margin: 0 0 8px;">💰 Article Processing Charge (APC)</p>
         <p style="color: #78350f; font-size: 14px; margin: 0 0 4px;">
-          To proceed with publication, please pay the APC of <strong>₹5,000</strong> (Indian Authors) / <strong>$50</strong> (International Authors).
+          To proceed with publication, please pay the APC of <strong>₹${apc.indianAmount.toLocaleString()}</strong> (Indian Authors) / <strong>$${apc.internationalAmount}</strong> (International Authors).
         </p>
         <p style="color: #92400e; font-size: 12px; margin: 0;">
           Payment can be made securely via Razorpay from your Dashboard.
@@ -253,14 +276,17 @@ async function notifyAuthorStatusUpdate(authorEmail, authorName, paperTitle, new
           💳 Pay Now & Proceed
         </a>
       </div>
-  ` : `
+    `;
+  } else {
+    acceptedPaymentBlock = `
       <div style="text-align: center; margin: 24px 0;">
         <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/dashboard"
            style="display: inline-block; background: #1d4ed8; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
           Open Dashboard
         </a>
       </div>
-  `;
+    `;
+  }
 
   await sendEmail(
     authorEmail,

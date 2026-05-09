@@ -18,7 +18,7 @@ const Home = () => {
     submissionDeadline: "March 31, 2025",
     reviewNotification: "Within 4–6 weeks",
     publication: "June 2025",
-    apc: "₹5,000 / $60 USD",
+    apc: "₹5,000 / $50 USD",
   });
   const [indexing, setIndexing] = useState([
     "Scopus", "Web of Science", "DOAJ", "CrossRef", "Google Scholar", "PubMed"

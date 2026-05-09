@@ -1,7 +1,7 @@
 // src/pages/Dashboard.js
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { papersAPI, paymentsAPI } from "../services/api";
+import { papersAPI, paymentsAPI, contentAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { BM25 } from "../utils/bm25";
 import { PageHero, PaperCard, Spinner, EmptyState, StatusBadge, Card } from "../components/common";
@@ -30,12 +30,18 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("papers");
   const [paperSearch, setPaperSearch] = useState("");
+  const [apcAmount, setApcAmount] = useState(5000);
 
   useEffect(() => {
     Promise.all([
       papersAPI.getAll({ onlyOwn: "true" }).then((res) => setPapers(res.papers || [])),
       paymentsAPI.getMyPayments().then((res) => setPayments(res.payments || [])).catch(() => {}),
     ]).finally(() => setLoading(false));
+
+    // Fetch dynamic APC amount from CFP content
+    contentAPI.getContent("call_for_papers").then((res) => {
+      if (res.value?.indianAmount) setApcAmount(res.value.indianAmount);
+    }).catch(() => {});
   }, []);
 
   const statusCounts = papers.reduce((acc, p) => {
@@ -58,7 +64,7 @@ const Dashboard = () => {
 
   const handlePayment = async (paper) => {
     try {
-      const order = await paymentsAPI.createOrder({ paperId: paper.id, amount: 5000 });
+      const order = await paymentsAPI.createOrder({ paperId: paper.id, amount: apcAmount });
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
@@ -182,7 +188,7 @@ const Dashboard = () => {
                     <PaperCard paper={p} showStatus searchTerm={paperSearch} />
                     {p.status === "accepted" && p.paymentStatus !== "paid" && (
                       <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
-                        <p className="text-sm text-yellow-800">⚠️ Paper accepted! Pay APC (₹5,000) to proceed to publication.</p>
+                        <p className="text-sm text-yellow-800">⚠️ Paper accepted! Pay APC (₹{apcAmount.toLocaleString()}) to proceed to publication.</p>
                         <button onClick={() => handlePayment(p)} className="bg-yellow-500 text-white text-xs px-3 py-1.5 rounded font-medium hover:bg-yellow-600">Pay Now</button>
                       </div>
                     )}

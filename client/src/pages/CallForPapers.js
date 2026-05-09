@@ -119,12 +119,12 @@ const CallForPapers = () => {
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
             <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-1">Indian Authors</p>
-            <p className="text-2xl font-bold text-blue-800">₹5,000</p>
+            <p className="text-2xl font-bold text-blue-800">₹{(cfp?.indianAmount || 5000).toLocaleString()}</p>
             <p className="text-xs text-gray-500 mt-1">INR (incl. GST)</p>
           </div>
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
             <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wider mb-1">International Authors</p>
-            <p className="text-2xl font-bold text-emerald-800">$50</p>
+            <p className="text-2xl font-bold text-emerald-800">${cfp?.internationalAmount || 50}</p>
             <p className="text-xs text-gray-500 mt-1">USD</p>
           </div>
         </div>
