@@ -30,7 +30,7 @@ const Home = () => {
       .then((res) => {
         const papers = res.papers || [];
         setStatsData((prev) => ({ ...prev, publishedCount: papers.length }));
-        setLatestPapers(papers.slice(0, 6)); // Display latest 6
+        setLatestPapers(papers.slice(0, 3)); // Display latest 3
       })
       .catch(() => setLatestPapers([]))
       .finally(() => setLoading(false));
