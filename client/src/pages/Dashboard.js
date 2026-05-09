@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("papers");
   const [paperSearch, setPaperSearch] = useState("");
   const [apcAmount, setApcAmount] = useState(5000);
+  const [paymentAlert, setPaymentAlert] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -86,15 +87,14 @@ const Dashboard = () => {
               razorpay_signature: response.razorpay_signature,
               paperId: paper.id,
             });
-            alert("Payment successful! Your paper is now in queue for publication.");
-            window.location.reload();
+            setPaymentAlert({ type: "success", message: "Payment successful! Your paper is now in queue for publication." });
           },
         };
         const rzp = new window.Razorpay(options);
         rzp.open();
       };
     } catch (err) {
-      alert("Payment error: " + err.message);
+      setPaymentAlert({ type: "error", message: "Payment error: " + err.message });
     }
   };
 
@@ -106,6 +106,33 @@ const Dashboard = () => {
 
   return (
     <div>
+      {/* Payment Alert Popup */}
+      {paymentAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center transform transition-all">
+            <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4 ${paymentAlert.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+              <span className="text-2xl">{paymentAlert.type === 'success' ? '✅' : '❌'}</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              {paymentAlert.type === 'success' ? 'Success' : 'Error'}
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">{paymentAlert.message}</p>
+            <button
+              onClick={() => {
+                const isSuccess = paymentAlert.type === 'success';
+                setPaymentAlert(null);
+                if (isSuccess) window.location.reload();
+              }}
+              className={`w-full py-2.5 rounded-lg font-semibold text-white transition-colors ${
+                paymentAlert.type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       <PageHero
         title={`Welcome, ${profile?.name || "Author"}`}
         subtitle="Track your submissions and manage your research."
