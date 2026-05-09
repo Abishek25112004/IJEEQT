@@ -1,65 +1,13 @@
 // controllers/otpController.js
 // Handles sending and verifying email OTPs — strictly via email, no UI exposure
 
-const nodemailer = require("nodemailer");
-const dns = require("node:dns");
-const { promisify } = require("util");
-const resolve4 = promisify(dns.resolve4);
+const { sendViaBrevo } = require("../utils/mailer");
 
 // In-memory OTP store: { email -> { otp, expiresAt, attempts } }
 const otpStore = new Map();
 
 const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_ATTEMPTS = 5; // rate-limit wrong guesses
-
-/**
- * Create a nodemailer transporter from env vars.
- * For Gmail: manually resolves IPv4 to bypass Render's broken IPv6 routing.
- */
-async function createTransporter() {
-  const isGmail = (process.env.SMTP_HOST || "smtp.gmail.com").includes("gmail");
-  
-  if (isGmail) {
-    // Manually resolve smtp.gmail.com to an IPv4 address
-    // This bypasses Render's DNS which returns unreachable IPv6 addresses
-    let host = "smtp.gmail.com";
-    try {
-      const addresses = await resolve4("smtp.gmail.com");
-      if (addresses && addresses.length > 0) {
-        host = addresses[0]; // Use the raw IPv4 IP (e.g. "142.250.x.x")
-        console.log(`📧 Resolved smtp.gmail.com to IPv4: ${host}`);
-      }
-    } catch (dnsErr) {
-      console.warn("⚠️ Could not resolve smtp.gmail.com to IPv4, using hostname:", dnsErr.message);
-    }
-
-    return nodemailer.createTransport({
-      host: host,
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      connectionTimeout: 10000,
-      socketTimeout: 15000,
-      tls: {
-        servername: "smtp.gmail.com", // Required for TLS when connecting via IP
-        rejectUnauthorized: false
-      }
-    });
-  }
-
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-}
 
 /**
  * POST /api/auth/send-otp
@@ -73,7 +21,7 @@ const sendOtp = async (req, res) => {
     return res.status(400).json({ error: "Valid email is required" });
   }
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!process.env.BREVO_API_KEY) {
     return res.status(503).json({
       error: "Email service is not configured. Please contact the administrator.",
     });
@@ -89,13 +37,12 @@ const sendOtp = async (req, res) => {
   const journalName = process.env.JOURNAL_NAME || "IJEEQT";
 
   try {
-    const transporter = await createTransporter();
-
-    await transporter.sendMail({
-      from: `"${journalName}" <editorsinchief@ijeeqt.org>`,
-      replyTo: "editorsinchief@ijeeqt.org",
+    await sendViaBrevo({
       to: email,
       subject: `Your OTP for ${journalName} — Expires in 5 minutes`,
+      from: "editorsinchief@ijeeqt.org",
+      fromName: journalName,
+      replyTo: "editorsinchief@ijeeqt.org",
       html: `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #f8fafc; padding: 0; border-radius: 16px; overflow: hidden;">
           <!-- Header -->

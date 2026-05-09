@@ -1,54 +1,60 @@
 // utils/mailer.js
-// Shared email utility using nodemailer — reused across OTP, reviewer notifications, etc.
-
-const nodemailer = require("nodemailer");
-const dns = require("node:dns");
-const { promisify } = require("util");
-const resolve4 = promisify(dns.resolve4);
+// Shared email utility using Brevo (Sendinblue) HTTP API
+// Uses fetch (Node 18+) — no SMTP ports needed, works on Render free tier
 
 const JOURNAL_NAME = process.env.JOURNAL_NAME || "IJEEQT";
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-async function createTransporter() {
-  const isGmail = (process.env.SMTP_HOST || "smtp.gmail.com").includes("gmail");
-  
-  if (isGmail) {
-    let host = "smtp.gmail.com";
-    try {
-      const addresses = await resolve4("smtp.gmail.com");
-      if (addresses && addresses.length > 0) {
-        host = addresses[0];
-        console.log(`📧 Resolved smtp.gmail.com to IPv4: ${host}`);
-      }
-    } catch (dnsErr) {
-      console.warn("⚠️ Could not resolve smtp.gmail.com to IPv4, using hostname:", dnsErr.message);
-    }
+/**
+ * Send an email via Brevo's transactional HTTP API.
+ * @param {object} options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.subject - Email subject
+ * @param {string} options.html - Full HTML body
+ * @param {string} [options.from] - Sender email (defaults to SMTP_USER env)
+ * @param {string} [options.fromName] - Sender name (defaults to JOURNAL_NAME)
+ * @param {string} [options.replyTo] - Reply-to email
+ */
+async function sendViaBrevo({ to, subject, html, from, fromName, replyTo }) {
+  const apiKey = process.env.BREVO_API_KEY;
 
-    return nodemailer.createTransport({
-      host: host,
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      connectionTimeout: 10000,
-      socketTimeout: 15000,
-      tls: {
-        servername: "smtp.gmail.com",
-        rejectUnauthorized: false
-      }
-    });
+  if (!apiKey) {
+    console.warn("⚠️ BREVO_API_KEY not configured — skipping email to:", to);
+    return;
   }
 
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+  const payload = {
+    sender: {
+      name: fromName || JOURNAL_NAME,
+      email: from || process.env.SMTP_USER || "noreply@ijeeqt.org",
     },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+
+  if (replyTo) {
+    payload.replyTo = { email: replyTo };
+  }
+
+  const response = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
   });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Brevo API error (${response.status}): ${errorBody}`);
+  }
+
+  const result = await response.json();
+  console.log(`📧 Email sent to ${to}: ${subject} (messageId: ${result.messageId})`);
+  return result;
 }
 
 /**
@@ -60,13 +66,6 @@ async function createTransporter() {
  * @param {string} [fromOverride] - Optional sender email override
  */
 async function sendEmail(to, subject, heading, bodyHtml, fromOverride) {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn("⚠️ SMTP not configured — skipping email to:", to);
-    return;
-  }
-
-  const transporter = await createTransporter();
-
   const html = `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 580px; margin: 0 auto; background: #f8fafc; border-radius: 16px; overflow: hidden;">
       <!-- Header -->
@@ -90,14 +89,13 @@ async function sendEmail(to, subject, heading, bodyHtml, fromOverride) {
   `;
 
   try {
-    await transporter.sendMail({
-      from: fromOverride ? `"${JOURNAL_NAME}" <${fromOverride}>` : `"${JOURNAL_NAME}" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to,
-      replyTo: fromOverride || process.env.SMTP_USER,
       subject: `${JOURNAL_NAME} — ${subject}`,
       html,
+      from: fromOverride || process.env.SMTP_USER || "noreply@ijeeqt.org",
+      replyTo: fromOverride || process.env.SMTP_USER,
     });
-    console.log(`📧 Email sent to ${to}: ${subject}`);
   } catch (err) {
     console.error(`❌ Failed to send email to ${to}:`, err.message);
   }
@@ -269,6 +267,7 @@ async function notifyAuthorStatusUpdate(authorEmail, authorName, paperTitle, new
 
 module.exports = {
   sendEmail,
+  sendViaBrevo,
   notifyReviewerAssigned,
   notifyAdminAssignmentResponse,
   notifyAdminReviewSubmitted,
