@@ -21,7 +21,8 @@ router.get("/:key", async (req, res) => {
       where: { key }
     });
     if (!content) {
-      return res.status(404).json({ error: "Content not found" });
+      // Return empty default instead of 404 — avoids console errors on unconfigured keys
+      return res.json({ key, value: null });
     }
     res.json(content);
   } catch (error) {
