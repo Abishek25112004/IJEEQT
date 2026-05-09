@@ -194,7 +194,6 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
     submissionDeadline: "2025-03-31",
     reviewNotification: "Within 4–6 weeks",
     publication: "2025-06-30",
-    apc: "₹5,000 / $50 USD",
     indianAmount: 5000,
     internationalAmount: 50,
     announcementTitle: "📢 Submissions Now Open",
@@ -261,7 +260,6 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
         <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><input type="date" name="submissionDeadline" value={form.submissionDeadline} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Review Notification</label><input name="reviewNotification" value={form.reviewNotification} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Publication Date</label><input type="date" name="publication" value={form.publication} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
-        <div><label className="block text-sm font-medium mb-1">APC Display Text</label><input name="apc" value={form.apc} onChange={handleChange} className="w-full border rounded px-3 py-2" placeholder="e.g. ₹5,000 / $50 USD" /></div>
         <div><label className="block text-sm font-medium mb-1">Indian Amount (₹)</label><input type="number" name="indianAmount" value={form.indianAmount} onChange={(e) => setForm({...form, indianAmount: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">International Amount ($)</label><input type="number" name="internationalAmount" value={form.internationalAmount} onChange={(e) => setForm({...form, internationalAmount: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full border rounded px-3 py-2" /></div>
       </div>

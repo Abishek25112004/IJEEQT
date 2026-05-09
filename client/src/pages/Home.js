@@ -18,7 +18,8 @@ const Home = () => {
     submissionDeadline: "March 31, 2025",
     reviewNotification: "Within 4–6 weeks",
     publication: "June 2025",
-    apc: "₹5,000 / $50 USD",
+    indianAmount: 5000,
+    internationalAmount: 50,
   });
   const [indexing, setIndexing] = useState([
     "Scopus", "Web of Science", "DOAJ", "CrossRef", "Google Scholar", "PubMed"
@@ -121,7 +122,7 @@ const Home = () => {
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">💰</span>
-                <span><strong className="text-white">APC:</strong> {cfp.apc}</span>
+                <span><strong className="text-white">APC:</strong> ₹{(cfp.indianAmount || 5000).toLocaleString()} / ${cfp.internationalAmount || 50} USD</span>
               </li>
             </ul>
             <Link
