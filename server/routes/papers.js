@@ -60,20 +60,12 @@ router.get("/:id/download", verifyToken, asyncHandler(async (req, res) => {
     ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
     : 'paper.pdf';
 
+  const buffer = Buffer.from(await response.arrayBuffer());
+
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-  // Stream the response body to the client
-  const reader = response.body.getReader();
-  const pump = async () => {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      res.write(value);
-    }
-    res.end();
-  };
-  await pump();
+  res.setHeader('Content-Length', buffer.length);
+  res.send(buffer);
 }));
 
 // Public download for published papers (no auth needed)
@@ -94,19 +86,12 @@ router.get("/:id/download-public", asyncHandler(async (req, res) => {
     ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
     : 'paper.pdf';
 
+  const buffer = Buffer.from(await response.arrayBuffer());
+
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-  const reader = response.body.getReader();
-  const pump = async () => {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      res.write(value);
-    }
-    res.end();
-  };
-  await pump();
+  res.setHeader('Content-Length', buffer.length);
+  res.send(buffer);
 }));
 
 module.exports = router;
