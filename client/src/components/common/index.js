@@ -157,67 +157,215 @@ export const SectionTitle = ({ title, subtitle }) => (
   </div>
 );
 
+// ─── Cite Modal ─────────────────────────────────────────────────────────────────
+export const CiteModal = ({ paper, onClose }) => {
+  const [activeTab, setActiveTab] = React.useState("plain");
+  const [copied, setCopied] = React.useState(false);
+  const [includeAbstract, setIncludeAbstract] = React.useState(false);
+
+  const getCitations = (p, inclAbs) => {
+    const authorName = p.authorName || "Author";
+    const title = p.title || "Paper Title";
+    const year = p.year || (p.submittedAt ? new Date(p.submittedAt).getFullYear() : new Date().getFullYear());
+    const volume = p.volume || "1";
+    const issue = p.issue || "1";
+    const doi = p.doi || "";
+    const journalName = process.env.REACT_APP_JOURNAL_NAME || "International Journal of Engineering Excellence in Quantum Technology";
+    
+    let plain = `${authorName}, "${title}," in ${journalName}, vol. ${volume}, no. ${issue}, ${year}.${doi ? ` doi: ${doi}.` : ''}`;
+    if (inclAbs && p.abstract) plain += `\n\nAbstract: ${p.abstract}`;
+    
+    let bibtex = `@article{${p.id ? p.id.substring(0,8) : 'paper'},
+  author={${authorName}},
+  journal={${journalName}},
+  title={${title}},
+  year={${year}},
+  volume={${volume}},
+  number={${issue}},${doi ? `\n  doi={${doi}},` : ''}${inclAbs && p.abstract ? `\n  abstract={${p.abstract}}` : ''}
+}`;
+
+    let ris = `TY  - JOUR
+AU  - ${authorName}
+TI  - ${title}
+JO  - ${journalName}
+VL  - ${volume}
+IS  - ${issue}
+PY  - ${year}${doi ? `\nDO  - ${doi}` : ''}${inclAbs && p.abstract ? `\nAB  - ${p.abstract}` : ''}
+ER  - `;
+
+    let refworks = `RT Journal Article
+A1 ${authorName}
+T1 ${title}
+JF ${journalName}
+YR ${year}
+VO ${volume}
+IS ${issue}${doi ? `\nDO ${doi}` : ''}${inclAbs && p.abstract ? `\nAB ${p.abstract}` : ''}`;
+
+    return { plain, bibtex, ris, refworks };
+  };
+
+  const citations = getCitations(paper, includeAbstract);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(citations[activeTab]);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleBackdropClick = (e) => {
+    e.stopPropagation();
+    onClose();
+  };
+
+  const handleContentClick = (e) => {
+    e.stopPropagation();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={handleBackdropClick}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={handleContentClick}>
+        <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50">
+          <h3 className="text-sm font-bold text-gray-800">Cite This</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-xl font-bold leading-none">&times;</button>
+        </div>
+        
+        <div className="flex border-b overflow-x-auto no-scrollbar">
+          {[
+            { id: "plain", label: "Plain Text" },
+            { id: "bibtex", label: "BibTeX" },
+            { id: "ris", label: "RIS" },
+            { id: "refworks", label: "Refworks" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 min-w-[100px] py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? "border-blue-700 text-blue-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="p-4 flex-1 overflow-y-auto">
+          <div className="bg-gray-50 p-4 rounded border text-sm text-gray-700 whitespace-pre-wrap font-mono min-h-[150px]">
+            {citations[activeTab]}
+          </div>
+        </div>
+        
+        <div className="px-4 py-3 bg-gray-50 border-t flex justify-between items-center flex-wrap gap-3">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={includeAbstract}
+              onChange={(e) => setIncludeAbstract(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">Citation & Abstract</span>
+          </label>
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 text-sm bg-white border border-gray-300 shadow-sm px-4 py-1.5 rounded hover:bg-gray-50 transition-colors text-blue-700 font-medium"
+          >
+            {copied ? (
+              <span className="text-green-600">✓ Copied</span>
+            ) : (
+              <>
+                <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Paper Card ────────────────────────────────────────────────────────────────
 export const PaperCard = ({ paper, showStatus = false, searchTerm = "" }) => {
   const [expanded, setExpanded] = React.useState(false);
+  const [citeModalOpen, setCiteModalOpen] = React.useState(false);
 
   return (
-    <Card className="p-4" hover>
-      <div className="flex justify-between items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 text-sm leading-snug hover:text-blue-700 transition-colors">
-            <HighlightText text={paper.title} highlight={searchTerm} />
-          </h3>
-          <p className="text-xs text-gray-500 mt-1">
-            <HighlightText text={paper.authorName} highlight={searchTerm} />
-          </p>
-          {paper.keywords?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {paper.keywords.slice(0, 5).map((kw, i) => (
-                <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
-                  <HighlightText text={kw} highlight={searchTerm} />
-                </span>
-              ))}
+    <>
+      <Card className="p-4 relative" hover>
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900 text-sm leading-snug hover:text-blue-700 transition-colors">
+              <HighlightText text={paper.title} highlight={searchTerm} />
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              <HighlightText text={paper.authorName} highlight={searchTerm} />
+            </p>
+            {paper.keywords?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {paper.keywords.slice(0, 5).map((kw, i) => (
+                  <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                    <HighlightText text={kw} highlight={searchTerm} />
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          {showStatus && (
+            <div className="shrink-0">
+              <StatusBadge status={paper.status} />
             </div>
           )}
         </div>
-        {showStatus && (
-          <div className="shrink-0">
-            <StatusBadge status={paper.status} />
+        {paper.abstract && (
+          <div className="mt-3">
+            <p className={`text-xs text-gray-600 leading-relaxed text-justify ${expanded ? "" : "line-clamp-3"}`}>
+              <HighlightText text={paper.abstract} highlight={searchTerm} />
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 hover:underline"
+            >
+              {expanded ? "Hide ▲" : "View ▼"}
+            </button>
           </div>
         )}
-      </div>
-      {paper.abstract && (
-        <div className="mt-3">
-          <p className={`text-xs text-gray-600 leading-relaxed text-justify ${expanded ? "" : "line-clamp-3"}`}>
-            <HighlightText text={paper.abstract} highlight={searchTerm} />
-          </p>
-          <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 hover:underline"
-          >
-            {expanded ? "Hide ▲" : "View ▼"}
-          </button>
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+          <span className="text-xs text-gray-400">
+            {paper.submittedAt ? new Date(paper.submittedAt).toLocaleDateString() : ""}
+            {paper.volume && ` · Vol. ${paper.volume}, Issue ${paper.issue}`}
+          </span>
+          <div className="flex gap-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCiteModalOpen(true);
+              }}
+              className="text-xs text-blue-700 font-medium hover:underline flex items-center gap-1"
+            >
+              ❝ Cite This
+            </button>
+            {paper.fileUrl && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadPaperPdf(paper);
+                }}
+                className="text-xs text-blue-700 font-medium hover:underline flex items-center gap-1"
+              >
+                📄 Download PDF
+              </button>
+            )}
+          </div>
         </div>
+      </Card>
+      
+      {citeModalOpen && (
+        <CiteModal paper={paper} onClose={() => setCiteModalOpen(false)} />
       )}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-        <span className="text-xs text-gray-400">
-          {paper.submittedAt ? new Date(paper.submittedAt).toLocaleDateString() : ""}
-          {paper.volume && ` · Vol. ${paper.volume}, Issue ${paper.issue}`}
-        </span>
-        {paper.fileUrl && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              downloadPaperPdf(paper);
-            }}
-            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-          >
-            📄 Download PDF
-          </button>
-        )}
-      </div>
-    </Card>
+    </>
   );
 };
 
