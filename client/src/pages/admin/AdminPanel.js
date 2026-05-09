@@ -203,6 +203,7 @@ const AdminPanel = () => {
   const [paperStatusFilter, setPaperStatusFilter] = useState("all");
   const [reviewerSearch, setReviewerSearch] = useState("");
   const [expandedReviewerId, setExpandedReviewerId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { uid, name } or null
 
   const isAdmin = profile?.roles?.includes("admin") || profile?.role === "admin";
 
@@ -673,7 +674,7 @@ const AdminPanel = () => {
                           {isAdmin && (
                             <td className="px-4 py-3">
                               <button
-                                onClick={() => { if (window.confirm(`Delete ${u.name}?`)) adminAPI.deleteUser(u.uid).then(load).catch((e) => setErr(e.message)); }}
+                                onClick={() => setDeleteConfirm({ uid: u.uid, name: u.name })}
                                 className="text-red-500 text-xs hover:underline">
                                 Delete
                               </button>
@@ -796,6 +797,44 @@ const AdminPanel = () => {
           </>
         )}
       </div>
+
+      {/* Delete User Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Delete User</h3>
+              <p className="text-sm text-gray-500 text-center">
+                Are you sure you want to delete <strong className="text-gray-900">{deleteConfirm.name}</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex border-t border-gray-200">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  adminAPI.deleteUser(deleteConfirm.uid)
+                    .then(() => { setMsg(`User "${deleteConfirm.name}" deleted successfully.`); load(); })
+                    .catch((e) => setErr(e.message));
+                  setDeleteConfirm(null);
+                }}
+                className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
