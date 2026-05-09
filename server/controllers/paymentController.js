@@ -46,7 +46,8 @@ const createOrder = async (req, res) => {
     const options = {
       amount: amount * 100, // Convert to paise
       currency: "INR",
-      receipt: `receipt_${paperId}_${Date.now()}`,
+      // Keep receipt length under 40 chars: 'rcpt' (4) + timestamp (13) + shortId (8)
+      receipt: `rcpt_${Date.now()}_${paperId.substring(0, 8)}`,
       notes: {
         paperId,
         userId: req.user.uid,
