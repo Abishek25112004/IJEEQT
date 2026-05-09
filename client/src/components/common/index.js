@@ -12,7 +12,7 @@ async function downloadPaperPdf(paper) {
     : 'paper.pdf';
 
   try {
-    const { auth } = await import("../services/firebase");
+    const { auth } = await import("../../services/firebase");
     const user = auth.currentUser;
     let blob;
 
