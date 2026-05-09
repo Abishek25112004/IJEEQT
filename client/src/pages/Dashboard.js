@@ -248,7 +248,7 @@ const Dashboard = () => {
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-sm font-medium text-gray-800">Order: {pay.razorpayOrderId}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{new Date(pay.createdAt).toLocaleDateString()}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{new Date(pay.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-gray-800">₹{pay.amount?.toLocaleString()}</p>
