@@ -33,7 +33,7 @@ async function stampPdf(pdfBuffer, options = {}) {
   // Fetch logo bytes for embedding
   let logoImage;
   try {
-    const logoUrl = "https://res.cloudinary.com/ddiv16uib/image/upload/v1778414760/assets/journal_logo.png";
+    const logoUrl = "https://res.cloudinary.com/ddiv16uib/image/upload/v1778415780/assets/journal_logo.png";
     const logoResponse = await fetch(logoUrl);
     const logoBytes = await logoResponse.arrayBuffer();
     logoImage = await pdfDoc.embedPng(logoBytes);

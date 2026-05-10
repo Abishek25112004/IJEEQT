@@ -48,7 +48,7 @@ const Navbar = () => {
             <img 
               src="/assets/logo.png" 
               alt={process.env.REACT_APP_JOURNAL_ABBR || "IJEEQT"} 
-              className="w-12 h-12 object-contain"
+              className="w-24 h-12 sm:w-32 sm:h-14 object-contain"
             />
             <div className="hidden sm:block">
               <p className="text-blue-900 font-bold text-sm leading-tight">

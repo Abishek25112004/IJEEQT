@@ -9,7 +9,8 @@ async function uploadLogo() {
       folder: 'assets',
       public_id: 'journal_logo',
       overwrite: true,
-      resource_type: 'image'
+      resource_type: 'image',
+      format: 'png'
     });
     console.log('Logo uploaded successfully!');
     console.log('URL:', result.secure_url);
