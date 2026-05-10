@@ -44,28 +44,10 @@ async function stampPdf(pdfBuffer, options = {}) {
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
     const { width, height } = page.getSize();
-    
+
     // Header setup
     const headerFontSize = 8; // Smaller font
-    const headerY = height - 15 + topMarginOffset; // Move to the very top margin
-
-    // CLEAR the area first to prevent "overwriting" if already stamped
-    // Clear 30pt which should cover all previous coordinate attempts
-    page.drawRectangle({
-      x: 0,
-      y: height - 30,
-      width: width,
-      height: 30,
-      color: rgb(1, 1, 1), // Pure white
-    });
-    // Clear footer area too
-    page.drawRectangle({
-      x: 0,
-      y: 0,
-      width: width,
-      height: 30,
-      color: rgb(1, 1, 1), // Pure white
-    });
+    const headerY = height - 25 + topMarginOffset; // Move higher
 
     // Draw Logo if available
     if (logoImage) {
@@ -83,11 +65,11 @@ async function stampPdf(pdfBuffer, options = {}) {
 
     // Draw Header (Right-aligned or offset from logo)
     page.drawText(headerText, {
-      x: logoImage ? 100 : (width - headerTextWidth) / 2, 
+      x: logoImage ? 100 : (width - headerTextWidth) / 2,
       y: headerY,
       size: headerFontSize,
       font: fontBold,
-      color: rgb(0.1, 0.1, 0.4), 
+      color: rgb(0.1, 0.1, 0.4),
     });
 
     // Draw Header line separator
