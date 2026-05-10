@@ -50,11 +50,11 @@ const PrivacyPolicyModal = ({ onClose }) => (
         </section>
         <section>
           <h3 className="font-semibold text-gray-900 mb-1">5. Your Rights & Data Retention</h3>
-          <p>We retain your personal data only as long as necessary to fulfill the purposes outlined above or comply with legal obligations. You have the right to access, modify, or delete your personal data at any time by contacting us at <a href="mailto:editor@ijeeqt.org" className="text-blue-600 hover:underline">editor@ijeeqt.org</a>.</p>
+          <p>We retain your personal data only as long as necessary to fulfill the purposes outlined above or comply with legal obligations. You have the right to access, modify, or delete your personal data at any time by contacting us at <a href="mailto:editorinchief@ijeeqt.org" className="text-blue-600 hover:underline">editorinchief@ijeeqt.org</a>.</p>
         </section>
         <section>
           <h3 className="font-semibold text-gray-900 mb-1">6. Contact Us</h3>
-          <p>For privacy-related inquiries, contact us at <a href="mailto:privacy@ijeeqt.org" className="text-blue-600 hover:underline">privacy@ijeeqt.org</a>.</p>
+          <p>For privacy-related inquiries, contact us at <a href="mailto:supports@ijeeqt.org" className="text-blue-600 hover:underline">supports@ijeeqt.org</a>.</p>
         </section>
       </div>
       <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
