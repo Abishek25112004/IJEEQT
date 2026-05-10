@@ -45,11 +45,11 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo / Journal Name */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-800 rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">
-                {process.env.REACT_APP_JOURNAL_ABBR || "IJEEQT"}
-              </span>
-            </div>
+            <img 
+              src="/assets/logo.png" 
+              alt={process.env.REACT_APP_JOURNAL_ABBR || "IJEEQT"} 
+              className="w-12 h-12 object-contain"
+            />
             <div className="hidden sm:block">
               <p className="text-blue-900 font-bold text-sm leading-tight">
                 {process.env.REACT_APP_JOURNAL_NAME || "International Journal of Engineering Excellence in Quantum Technology"}

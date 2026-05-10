@@ -30,19 +30,42 @@ async function stampPdf(pdfBuffer, options = {}) {
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const pages = pdfDoc.getPages();
 
+  // Fetch logo bytes for embedding
+  let logoImage;
+  try {
+    const logoUrl = "https://res.cloudinary.com/ddiv16uib/image/upload/v1778414760/assets/journal_logo.png";
+    const logoResponse = await fetch(logoUrl);
+    const logoBytes = await logoResponse.arrayBuffer();
+    logoImage = await pdfDoc.embedPng(logoBytes);
+  } catch (e) {
+    console.warn("Failed to fetch or embed logo for PDF stamping:", e.message);
+  }
+
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
     const { width, height } = page.getSize();
     
     // Header setup
-    const headerText = journalName;
     const headerFontSize = 10;
+    const headerY = height - 35 + topMarginOffset;
+
+    // Draw Logo if available
+    if (logoImage) {
+      const logoDims = logoImage.scale(0.15); // Adjust scale as needed
+      page.drawImage(logoImage, {
+        x: 40,
+        y: headerY - (logoDims.height / 2) + 5,
+        width: logoDims.width,
+        height: logoDims.height,
+      });
+    }
+
+    const headerText = journalName;
     const headerTextWidth = fontBold.widthOfTextAtSize(headerText, headerFontSize);
-    const headerY = height - 30 + topMarginOffset;
 
     // Draw Header (Centered, bold)
     page.drawText(headerText, {
-      x: (width - headerTextWidth) / 2,
+      x: (width - headerTextWidth) / 2 + (logoImage ? 20 : 0), // Offset slightly to the right if logo is present
       y: headerY,
       size: headerFontSize,
       font: fontBold,
@@ -51,8 +74,8 @@ async function stampPdf(pdfBuffer, options = {}) {
 
     // Draw Header line separator
     page.drawLine({
-      start: { x: 40, y: headerY - 5 },
-      end: { x: width - 40, y: headerY - 5 },
+      start: { x: 40, y: headerY - 15 },
+      end: { x: width - 40, y: headerY - 15 },
       thickness: 1,
       color: rgb(0.8, 0.8, 0.8),
     });
