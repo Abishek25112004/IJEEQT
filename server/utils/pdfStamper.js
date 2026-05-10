@@ -47,14 +47,15 @@ async function stampPdf(pdfBuffer, options = {}) {
     
     // Header setup
     const headerFontSize = 8; // Smaller font
-    const headerY = height - 18 + topMarginOffset; // Move even higher to clear title
+    const headerY = height - 15 + topMarginOffset; // Move to the very top margin
 
     // CLEAR the area first to prevent "overwriting" if already stamped
+    // Clear 30pt which should cover all previous coordinate attempts
     page.drawRectangle({
       x: 0,
-      y: height - 25,
+      y: height - 30,
       width: width,
-      height: 25,
+      height: 30,
       color: rgb(1, 1, 1), // Pure white
     });
     // Clear footer area too
@@ -62,7 +63,7 @@ async function stampPdf(pdfBuffer, options = {}) {
       x: 0,
       y: 0,
       width: width,
-      height: 20,
+      height: 30,
       color: rgb(1, 1, 1), // Pure white
     });
 
