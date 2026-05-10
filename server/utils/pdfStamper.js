@@ -51,10 +51,10 @@ async function stampPdf(pdfBuffer, options = {}) {
 
     // Draw Logo if available
     if (logoImage) {
-      const logoDims = logoImage.scale(0.15); // Adjust scale as needed
+      const logoDims = logoImage.scale(0.04); // Significantly smaller scale
       page.drawImage(logoImage, {
         x: 40,
-        y: headerY - (logoDims.height / 2) + 5,
+        y: headerY - 5,
         width: logoDims.width,
         height: logoDims.height,
       });
@@ -63,9 +63,9 @@ async function stampPdf(pdfBuffer, options = {}) {
     const headerText = journalName;
     const headerTextWidth = fontBold.widthOfTextAtSize(headerText, headerFontSize);
 
-    // Draw Header (Centered, bold)
+    // Draw Header (Right-aligned or offset from logo)
     page.drawText(headerText, {
-      x: (width - headerTextWidth) / 2 + (logoImage ? 20 : 0), // Offset slightly to the right if logo is present
+      x: logoImage ? 110 : (width - headerTextWidth) / 2, // Start after logo if exists
       y: headerY,
       size: headerFontSize,
       font: fontBold,
@@ -74,9 +74,9 @@ async function stampPdf(pdfBuffer, options = {}) {
 
     // Draw Header line separator
     page.drawLine({
-      start: { x: 40, y: headerY - 15 },
-      end: { x: width - 40, y: headerY - 15 },
-      thickness: 1,
+      start: { x: 40, y: headerY - 10 },
+      end: { x: width - 40, y: headerY - 10 },
+      thickness: 0.5,
       color: rgb(0.8, 0.8, 0.8),
     });
 
