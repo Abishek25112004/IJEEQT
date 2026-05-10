@@ -399,9 +399,15 @@ const formatPdf = async (req, res) => {
     }
 
     // Fetch the original PDF from Cloudinary
-    const response = await fetch(paper.fileUrl);
+    const response = await fetch(paper.fileUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
+    });
     if (!response.ok) {
-      return res.status(502).json({ error: "Failed to fetch file from storage" });
+      const errText = await response.text();
+      console.error(`Failed to fetch PDF from ${paper.fileUrl}. Status: ${response.status}, Details: ${errText}`);
+      return res.status(502).json({ error: `Failed to fetch file from storage (Status: ${response.status}). Check server logs for details.` });
     }
     const pdfBuffer = Buffer.from(await response.arrayBuffer());
 

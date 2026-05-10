@@ -53,7 +53,9 @@ router.get("/:id/download", verifyToken, asyncHandler(async (req, res) => {
   }
 
   // Fetch PDF from Cloudinary
-  const response = await fetch(paper.fileUrl);
+  const response = await fetch(paper.fileUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+  });
   if (!response.ok) {
     return res.status(502).json({ error: "Failed to fetch file from storage" });
   }
