@@ -37,7 +37,7 @@ const Navbar = () => {
       {/* Top bar */}
       <div className="bg-blue-900 text-white text-xs py-1 px-4 flex justify-between items-center">
         <span>ISSN (Online): 2XXX-XXXX</span>
-        <span>Impact Factor: 4.52 | Indexed: Scopus, Web of Science</span>
+        <span>Impact Factor: 4.52</span>
       </div>
 
       {/* Main navbar */}
