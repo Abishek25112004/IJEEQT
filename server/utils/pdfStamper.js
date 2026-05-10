@@ -47,15 +47,15 @@ async function stampPdf(pdfBuffer, options = {}) {
 
     // Header setup
     const headerFontSize = 8; // Smaller font
-    const headerY = height - 15 + topMarginOffset; // Move even higher to clear title
+    const headerY = height - 15 + topMarginOffset; 
 
     // CLEAR the area first to prevent "overwriting" if already stamped
-    // We clear 40pt to catch all previous coordinate attempts
+    // Reduced to 20pt to avoid covering the paper's main title
     page.drawRectangle({
       x: 0,
-      y: height - 40,
+      y: height - 20,
       width: width,
-      height: 40,
+      height: 20,
       color: rgb(1, 1, 1), // Pure white
     });
     // Clear footer area too
@@ -63,16 +63,16 @@ async function stampPdf(pdfBuffer, options = {}) {
       x: 0,
       y: 0,
       width: width,
-      height: 40,
+      height: 20,
       color: rgb(1, 1, 1), // Pure white
     });
 
     // Draw Logo if available
     if (logoImage) {
-      const logoDims = logoImage.scale(0.035); // Slightly smaller
+      const logoDims = logoImage.scale(0.03); // Slightly smaller
       page.drawImage(logoImage, {
         x: 40,
-        y: headerY - 2, // Align with text baseline
+        y: headerY - 1, // Align with text baseline more accurately
         width: logoDims.width,
         height: logoDims.height,
       });
@@ -83,18 +83,18 @@ async function stampPdf(pdfBuffer, options = {}) {
 
     // Draw Header (Right-aligned or offset from logo)
     page.drawText(headerText, {
-      x: logoImage ? 100 : (width - headerTextWidth) / 2,
-      y: headerY,
+      x: logoImage ? 100 : (width - headerTextWidth) / 2, 
       size: headerFontSize,
       font: fontBold,
-      color: rgb(0.1, 0.1, 0.4),
+      color: rgb(0.1, 0.1, 0.4), 
+      y: headerY,
     });
 
-    // Draw Header line separator
+    // Draw Header line separator - REDUCED THICKNESS AND MOVED UP
     page.drawLine({
-      start: { x: 40, y: headerY - 10 },
-      end: { x: width - 40, y: headerY - 10 },
-      thickness: 0.5,
+      start: { x: 40, y: headerY - 5 },
+      end: { x: width - 40, y: headerY - 5 },
+      thickness: 0.3,
       color: rgb(0.8, 0.8, 0.8),
     });
 
