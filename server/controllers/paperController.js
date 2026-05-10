@@ -398,18 +398,33 @@ const formatPdf = async (req, res) => {
       return res.status(404).json({ error: "Paper or file not found" });
     }
 
-    // Fetch the original PDF from Cloudinary
-    const response = await fetch(paper.fileUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    // Download PDF from Cloudinary using ZIP download (bypasses delivery restrictions)
+    let pdfBuffer;
+    try {
+      const AdmZip = require("adm-zip");
+      // Generate a signed ZIP download URL via Cloudinary API
+      const zipUrl = cloudinary.utils.download_zip_url({
+        public_ids: [paper.fileName],
+        resource_type: "raw",
+      });
+      const zipRes = await fetch(zipUrl);
+      if (!zipRes.ok) {
+        console.error(`Cloudinary ZIP download failed. Status: ${zipRes.status}`);
+        return res.status(502).json({ error: "Failed to download file from storage." });
       }
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`Failed to fetch PDF from ${paper.fileUrl}. Status: ${response.status}, Details: ${errText}`);
-      return res.status(502).json({ error: `Failed to fetch file from storage (Status: ${response.status}). Check server logs for details.` });
+      const zipBuffer = Buffer.from(await zipRes.arrayBuffer());
+      // Extract the PDF from the ZIP
+      const zip = new AdmZip(zipBuffer);
+      const entries = zip.getEntries();
+      const pdfEntry = entries.find(e => e.entryName.endsWith(".pdf"));
+      if (!pdfEntry) {
+        return res.status(500).json({ error: "PDF not found inside downloaded archive." });
+      }
+      pdfBuffer = pdfEntry.getData();
+    } catch (fetchErr) {
+      console.error("Error downloading PDF from Cloudinary:", fetchErr);
+      return res.status(502).json({ error: "Failed to download PDF: " + fetchErr.message });
     }
-    const pdfBuffer = Buffer.from(await response.arrayBuffer());
 
     // Stamp the PDF
     const stampedBuffer = await stampPdf(pdfBuffer, {

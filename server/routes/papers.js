@@ -42,7 +42,24 @@ router.patch("/:id/status", verifyToken, requireRole(["admin", "editor"]), async
 router.patch("/:id/assign-reviewer", verifyToken, requireRole(["admin", "editor"]), asyncHandler(assignReviewer));
 router.post("/:id/format-pdf", verifyToken, requireRole(["admin", "editor"]), asyncHandler(formatPdf));
 
-// ─── PDF Download Proxy (bypasses Cloudinary CORS) ─────────────────────────────
+// ─── PDF Download Proxy (bypasses Cloudinary delivery restrictions) ──────────
+// Helper: Download PDF from Cloudinary using signed ZIP archive
+async function downloadPdfFromCloudinary(paper) {
+  const cloudinary = require("../config/cloudinary");
+  const AdmZip = require("adm-zip");
+  const zipUrl = cloudinary.utils.download_zip_url({
+    public_ids: [paper.fileName],
+    resource_type: "raw",
+  });
+  const zipRes = await fetch(zipUrl);
+  if (!zipRes.ok) throw new Error(`ZIP download failed: ${zipRes.status}`);
+  const zipBuffer = Buffer.from(await zipRes.arrayBuffer());
+  const zip = new AdmZip(zipBuffer);
+  const pdfEntry = zip.getEntries().find(e => e.entryName.endsWith(".pdf"));
+  if (!pdfEntry) throw new Error("PDF not found in archive");
+  return pdfEntry.getData();
+}
+
 // Authenticated download — any logged-in user with access to the paper
 router.get("/:id/download", verifyToken, asyncHandler(async (req, res) => {
   const prisma = require("../config/db");
@@ -52,19 +69,11 @@ router.get("/:id/download", verifyToken, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "Paper or file not found" });
   }
 
-  // Fetch PDF from Cloudinary
-  const response = await fetch(paper.fileUrl, {
-    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
-  });
-  if (!response.ok) {
-    return res.status(502).json({ error: "Failed to fetch file from storage" });
-  }
+  const buffer = await downloadPdfFromCloudinary(paper);
 
   const fileName = paper.title
     ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
     : 'paper.pdf';
-
-  const buffer = Buffer.from(await response.arrayBuffer());
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -81,16 +90,11 @@ router.get("/:id/download-public", asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "Published paper or file not found" });
   }
 
-  const response = await fetch(paper.fileUrl);
-  if (!response.ok) {
-    return res.status(502).json({ error: "Failed to fetch file from storage" });
-  }
+  const buffer = await downloadPdfFromCloudinary(paper);
 
   const fileName = paper.title
     ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
     : 'paper.pdf';
-
-  const buffer = Buffer.from(await response.arrayBuffer());
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
