@@ -45,11 +45,26 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo / Journal Name */}
           <Link to="/" className="flex items-center gap-3">
-            <img 
-              src="/assets/logo.png" 
-              alt={process.env.REACT_APP_JOURNAL_ABBR || "IJEEQT"} 
-              className="w-32 h-16 sm:w-40 sm:h-20 object-contain"
-            />
+            <div className="flex items-center" style={{ height: '50px' }}>
+              <svg 
+                viewBox="0 0 400 100" 
+                className="w-48 h-12 sm:w-56 sm:h-14"
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <text 
+                  x="0" 
+                  y="75" 
+                  fontFamily="Inter, system-ui, -apple-system, sans-serif" 
+                  fontWeight="900" 
+                  fontSize="80" 
+                  letterSpacing="-2"
+                >
+                  <tspan fill="#1e3a8a">IJEE</tspan>
+                  <tspan fill="#f97316">QT</tspan>
+                </text>
+              </svg>
+            </div>
             <div className="hidden sm:block">
               <p className="text-blue-900 font-bold text-sm leading-tight">
                 {process.env.REACT_APP_JOURNAL_NAME || "International Journal of Engineering Excellence in Quantum Technology"}
