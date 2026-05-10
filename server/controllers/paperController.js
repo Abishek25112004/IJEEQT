@@ -6,6 +6,7 @@ const cloudinary = require("../config/cloudinary");
 const { notifyAuthorSubmissionReceived, notifyAuthorStatusUpdate } = require("../utils/mailer");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
+const { stampPdf } = require("../utils/pdfStamper");
 
 const uploadToCloudinary = (fileBuffer, fileName) => {
   return new Promise((resolve, reject) => {
@@ -378,6 +379,76 @@ const deletePaper = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/papers/:id/format-pdf
+ * Format PDF (Preview or Apply Option B)
+ */
+const formatPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { volume, issue, doi, year, topMargin, bottomMargin, isPreview } = req.body;
+
+    const isAdmin = (req.user.roles || []).includes("admin") || req.user.role === "admin";
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Only admins can format papers." });
+    }
+
+    const paper = await prisma.paper.findUnique({ where: { id } });
+    if (!paper || !paper.fileUrl) {
+      return res.status(404).json({ error: "Paper or file not found" });
+    }
+
+    // Fetch the original PDF from Cloudinary
+    const response = await fetch(paper.fileUrl);
+    if (!response.ok) {
+      return res.status(502).json({ error: "Failed to fetch file from storage" });
+    }
+    const pdfBuffer = Buffer.from(await response.arrayBuffer());
+
+    // Stamp the PDF
+    const stampedBuffer = await stampPdf(pdfBuffer, {
+      volume: volume || "",
+      issue: issue || "",
+      year: year || "",
+      doi: doi || "",
+      topMarginOffset: Number(topMargin) || 0,
+      bottomMarginOffset: Number(bottomMargin) || 0
+    });
+
+    if (isPreview) {
+      // Return base64 for preview
+      const base64Pdf = stampedBuffer.toString('base64');
+      return res.json({ base64: base64Pdf });
+    } else {
+      // Option B: Overwrite on Cloudinary
+      if (!paper.fileName) {
+        return res.status(400).json({ error: "Original file name missing. Cannot overwrite." });
+      }
+
+      // We use invalidate to clear the Cloudinary cache
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: "raw",
+          public_id: paper.fileName, // Use the existing fileName to overwrite
+          overwrite: true,
+          invalidate: true,
+        },
+        async (error, result) => {
+          if (error) {
+            console.error("Cloudinary upload error:", error);
+            return res.status(500).json({ error: "Failed to overwrite PDF on Cloudinary" });
+          }
+          res.json({ message: "Format applied successfully." });
+        }
+      );
+      uploadStream.end(stampedBuffer);
+    }
+  } catch (error) {
+    console.error("Error formatting PDF:", error);
+    res.status(500).json({ error: "Internal server error during PDF formatting." });
+  }
+};
+
 module.exports = {
   submitPaper,
   getAllPapers,
@@ -386,4 +457,5 @@ module.exports = {
   updatePaperStatus,
   assignReviewer,
   deletePaper,
+  formatPdf,
 };

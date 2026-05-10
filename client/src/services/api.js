@@ -65,6 +65,7 @@ export const papersAPI = {
   assignReviewer: (id, reviewerId) =>
     api.patch(`/papers/${id}/assign-reviewer`, { reviewerId }),
   delete: (id) => api.delete(`/papers/${id}`),
+  formatPdf: (id, data) => api.post(`/papers/${id}/format-pdf`, data),
   // PDF download via backend proxy (bypasses Cloudinary CORS)
   download: (id) => api.get(`/papers/${id}/download`, { responseType: 'blob' }),
   downloadPublic: (id) => api.get(`/papers/${id}/download-public`, { responseType: 'blob' }),

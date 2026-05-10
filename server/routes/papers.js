@@ -10,6 +10,7 @@ const {
   updatePaperStatus,
   assignReviewer,
   deletePaper,
+  formatPdf,
 } = require("../controllers/paperController");
 const { verifyToken, requireRole } = require("../middleware/auth");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -39,6 +40,7 @@ router.delete("/:id", verifyToken, asyncHandler(deletePaper));
 // Admin/Editor only routes
 router.patch("/:id/status", verifyToken, requireRole(["admin", "editor"]), asyncHandler(updatePaperStatus));
 router.patch("/:id/assign-reviewer", verifyToken, requireRole(["admin", "editor"]), asyncHandler(assignReviewer));
+router.post("/:id/format-pdf", verifyToken, requireRole(["admin", "editor"]), asyncHandler(formatPdf));
 
 // ─── PDF Download Proxy (bypasses Cloudinary CORS) ─────────────────────────────
 // Authenticated download — any logged-in user with access to the paper

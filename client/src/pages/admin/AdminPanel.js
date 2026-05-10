@@ -156,30 +156,117 @@ const SearchBar = ({ value, onChange, placeholder }) => (
   </div>
 );
 
-// ─── Publish Form ─────────────────────────────────────────────────────────────
-const PublishForm = ({ paperId, onPublish }) => {
+// ─── Format & Publish Modal ───────────────────────────────────────────────────
+const FormatAndPublishModal = ({ paperId, paperTitle, totalPublishedCount, onPublish, setErr, setMsg }) => {
   const [open, setOpen] = useState(false);
-  const [vol, setVol] = useState("");
-  const [iss, setIss] = useState("");
+  const [vol, setVol] = useState(new Date().getFullYear() - 2024 + 1); // Assuming Volume 1 is 2024
+  const [iss, setIss] = useState(Math.floor((new Date().getMonth() / 3)) + 1);
   const [yr, setYr] = useState(new Date().getFullYear().toString());
-  const [doi, setDoi] = useState("");
+  const [doi, setDoi] = useState((totalPublishedCount + 1).toString());
+  const [topMargin, setTopMargin] = useState(0);
+  const [bottomMargin, setBottomMargin] = useState(0);
+  const [previewPdf, setPreviewPdf] = useState(null);
+  const [formatting, setFormatting] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  const handlePreview = async () => {
+    setErr(""); setPreviewPdf(null); setFormatting(true);
+    try {
+      const res = await papersAPI.formatPdf(paperId, {
+        volume: vol, issue: iss, year: yr, doi: doi, topMargin, bottomMargin, isPreview: true
+      });
+      setPreviewPdf(res.base64);
+    } catch (e) {
+      setErr("Failed to generate preview: " + e.message);
+    } finally {
+      setFormatting(false);
+    }
+  };
+
+  const handleApply = async () => {
+    setErr(""); setFormatting(true);
+    try {
+      await papersAPI.formatPdf(paperId, {
+        volume: vol, issue: iss, year: yr, doi: doi, topMargin, bottomMargin, isPreview: false
+      });
+      setMsg("Format applied and original PDF overwritten!");
+      setApplied(true);
+    } catch (e) {
+      setErr("Failed to apply format: " + e.message);
+    } finally {
+      setFormatting(false);
+    }
+  };
 
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="bg-emerald-100 text-emerald-700 text-xs px-3 py-1.5 rounded hover:bg-emerald-200 font-medium">
-        Publish
+        Format & Publish
       </button>
     );
   }
+
   return (
-    <div className="flex flex-wrap items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg p-2">
-      <input placeholder="Vol" value={vol} onChange={(e) => setVol(e.target.value)} className="border rounded px-2 py-1 text-xs w-10" />
-      <input placeholder="Issue" value={iss} onChange={(e) => setIss(e.target.value)} className="border rounded px-2 py-1 text-xs w-12" />
-      <input placeholder="Year" value={yr} onChange={(e) => setYr(e.target.value)} className="border rounded px-2 py-1 text-xs w-14" type="number" />
-      <input placeholder="DOI" value={doi} onChange={(e) => setDoi(e.target.value)} className="border rounded px-2 py-1 text-xs w-28" />
-      <button onClick={() => { onPublish({ volume: vol, issue: iss, year: yr, doi }); setOpen(false); }}
-        className="bg-emerald-600 text-white text-xs px-2 py-1 rounded font-medium">✓ Publish</button>
-      <button onClick={() => setOpen(false)} className="text-gray-400 text-xs px-1">✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b">
+          <h2 className="text-lg font-bold text-gray-800">Format & Publish: <span className="font-normal text-gray-600">{paperTitle}</span></h2>
+          <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-black">✕</button>
+        </div>
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
+          {/* Sidebar Controls */}
+          <div className="w-full lg:w-1/3 p-4 border-r overflow-y-auto space-y-3 bg-gray-50">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Volume (Yearly)</label>
+              <input type="number" value={vol} onChange={e=>setVol(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Issue (Quarterly)</label>
+              <input type="number" value={iss} onChange={e=>setIss(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Year</label>
+              <input type="number" value={yr} onChange={e=>setYr(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">DOI / Paper Number</label>
+              <input type="text" value={doi} onChange={e=>setDoi(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            </div>
+            <hr className="my-2 border-gray-200" />
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Top Margin Offset (px)</label>
+              <input type="number" value={topMargin} onChange={e=>setTopMargin(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Bottom Margin Offset (px)</label>
+              <input type="number" value={bottomMargin} onChange={e=>setBottomMargin(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            </div>
+            
+            <button onClick={handlePreview} disabled={formatting} className="w-full bg-blue-100 text-blue-700 py-2 rounded text-sm font-semibold hover:bg-blue-200 mt-4 transition-colors">
+              {formatting && !applied ? "Generating..." : "Generate Preview"}
+            </button>
+            <button onClick={handleApply} disabled={formatting || !previewPdf} className={`w-full py-2 rounded text-sm font-semibold mt-2 transition-colors ${previewPdf ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}>
+              {formatting && applied ? "Applying..." : "Apply Format (Overwrite PDF)"}
+            </button>
+            
+            <button onClick={() => { onPublish({ volume: vol, issue: iss, year: yr, doi }); setOpen(false); }} disabled={!applied} className={`w-full py-2 rounded text-sm font-semibold mt-4 transition-colors ${applied ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md' : 'bg-emerald-100 text-emerald-400 cursor-not-allowed'}`}>
+              Finalize & Publish
+            </button>
+          </div>
+          {/* Preview Area */}
+          <div className="w-full lg:w-2/3 bg-gray-200 p-4 flex flex-col min-h-[50vh] lg:min-h-0">
+            <h3 className="text-sm font-semibold text-gray-600 mb-2">PDF Preview</h3>
+            {previewPdf ? (
+              <iframe src={`data:application/pdf;base64,${previewPdf}`} className="w-full flex-1 border border-gray-300 rounded shadow-inner" title="PDF Preview" />
+            ) : (
+              <div className="flex-1 border-2 border-dashed border-gray-400 rounded flex flex-col items-center justify-center text-gray-500 bg-gray-50">
+                <span className="text-3xl mb-2">📄</span>
+                <span>Click "Generate Preview" to view the formatting</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -525,7 +612,14 @@ const AdminPanel = () => {
                             );
                           })()}
                           {p.status === "accepted" && (
-                            <PublishForm paperId={p.id} onPublish={(extra) => handleStatusUpdate(p.id, "published", extra)} />
+                            <FormatAndPublishModal 
+                              paperId={p.id} 
+                              paperTitle={p.title} 
+                              totalPublishedCount={getPaperCount("published")}
+                              onPublish={(extra) => handleStatusUpdate(p.id, "published", extra)} 
+                              setErr={setErr} 
+                              setMsg={setMsg} 
+                            />
                           )}
                         </div>
                       </div>
