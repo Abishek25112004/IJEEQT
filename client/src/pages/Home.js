@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { papersAPI, contentAPI } from "../services/api";
 import { PaperCard, Spinner, Card } from "../components/common";
+import { formatDate } from "../utils/dateUtils";
 
 const Home = () => {
   const [latestPapers, setLatestPapers] = useState([]);
@@ -110,7 +111,7 @@ const Home = () => {
             <ul className="space-y-3 text-sm text-blue-100">
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">📅</span>
-                <span><strong className="text-white">Submission Deadline:</strong> {cfp.submissionDeadline}</span>
+                <span><strong className="text-white">Submission Deadline:</strong> {formatDate(cfp.submissionDeadline)}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">🔬</span>
@@ -118,7 +119,7 @@ const Home = () => {
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">📖</span>
-                <span><strong className="text-white">Publication:</strong> {cfp.publication}</span>
+                <span><strong className="text-white">Publication:</strong> {formatDate(cfp.publication)}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">💰</span>
