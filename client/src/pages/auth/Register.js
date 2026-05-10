@@ -18,34 +18,42 @@ const PrivacyPolicyModal = ({ onClose }) => (
         <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors">✕</button>
       </div>
       <div className="overflow-y-auto px-6 py-5 text-sm text-gray-700 space-y-4 leading-relaxed">
-        <p className="text-xs text-gray-400">Last updated: January 2025</p>
+        <p className="text-xs text-gray-400">Last updated: {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
         <section>
           <h3 className="font-semibold text-gray-900 mb-1">1. Information We Collect</h3>
-          <p>When you create an account on IJEEQT, we collect your full name, email address, and password. We use this information solely to manage your account and provide access to submission and review services.</p>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            <li><strong>Account & Login Data:</strong> We collect your full name, email address, and hashed password to manage your account, authenticate logins, and secure your session.</li>
+            <li><strong>Paper Uploads & Peer Review:</strong> When you submit a manuscript, we collect author details, affiliations, and the content of the uploaded files to facilitate the review and publication process.</li>
+            <li><strong>Payment Information:</strong> For processing Article Processing Charges (APC) and other payments, we collect necessary billing details. Payments are processed securely via third-party gateways (e.g., Razorpay); we do not store full credit card details.</li>
+          </ul>
         </section>
         <section>
           <h3 className="font-semibold text-gray-900 mb-1">2. How We Use Your Information</h3>
           <ul className="list-disc list-inside space-y-1 text-gray-600">
-            <li>To create and manage your journal account</li>
-            <li>To communicate submission status and review feedback</li>
-            <li>To send OTP verification codes to your email</li>
-            <li>To process manuscript submissions and author correspondence</li>
+            <li>To create, authenticate, and manage your journal account securely.</li>
+            <li>To process manuscript submissions, facilitate peer review, and handle author correspondence.</li>
+            <li>To securely process payments and confirm transactions.</li>
+            <li>To send important notifications, such as OTP verification codes and submission status updates.</li>
           </ul>
         </section>
         <section>
-          <h3 className="font-semibold text-gray-900 mb-1">3. Data Security</h3>
-          <p>Your data is stored securely using Firebase (Google Cloud). Passwords are hashed and never stored in plain text. We implement industry-standard security measures to protect your personal information.</p>
+          <h3 className="font-semibold text-gray-900 mb-1">3. Data Security & Storage</h3>
+          <p>Your data is stored securely using cloud infrastructure. Passwords are encrypted and never stored in plain text. We implement industry-standard security measures, including HTTPS and secure cookies, to protect your personal and financial information against unauthorized access.</p>
         </section>
         <section>
-          <h3 className="font-semibold text-gray-900 mb-1">4. Data Sharing</h3>
-          <p>We do not sell or share your personal information with third parties. Your data may be shared with co-authors or editors only as needed for the peer review process.</p>
+          <h3 className="font-semibold text-gray-900 mb-1">4. Data Sharing & Third Parties</h3>
+          <p>We do not sell your personal information. Your data may be shared with:</p>
+          <ul className="list-disc list-inside space-y-1 text-gray-600 mt-1">
+            <li><strong>Co-authors & Editors:</strong> As necessary for the peer review and editorial process.</li>
+            <li><strong>Service Providers:</strong> Secure third-party services for hosting, payment processing, and email delivery.</li>
+          </ul>
         </section>
         <section>
-          <h3 className="font-semibold text-gray-900 mb-1">5. Your Rights</h3>
-          <p>You have the right to access, modify, or delete your personal data at any time by contacting us at <a href="mailto:editor@ijeeqt.org" className="text-blue-600 hover:underline">editor@ijeeqt.org</a>.</p>
+          <h3 className="font-semibold text-gray-900 mb-1">5. Your Rights & Data Retention</h3>
+          <p>We retain your personal data only as long as necessary to fulfill the purposes outlined above or comply with legal obligations. You have the right to access, modify, or delete your personal data at any time by contacting us at <a href="mailto:editor@ijeeqt.org" className="text-blue-600 hover:underline">editor@ijeeqt.org</a>.</p>
         </section>
         <section>
-          <h3 className="font-semibold text-gray-900 mb-1">6. Contact</h3>
+          <h3 className="font-semibold text-gray-900 mb-1">6. Contact Us</h3>
           <p>For privacy-related inquiries, contact us at <a href="mailto:privacy@ijeeqt.org" className="text-blue-600 hover:underline">privacy@ijeeqt.org</a>.</p>
         </section>
       </div>
