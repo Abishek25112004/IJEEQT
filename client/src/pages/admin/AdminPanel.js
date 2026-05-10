@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { useLocation } from "react-router-dom";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { formatDate } from "../../utils/dateUtils";
 import { BM25 } from "../../utils/bm25";
 import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState, HighlightText } from "../../components/common";
 
@@ -510,7 +511,7 @@ const AdminPanel = () => {
                           <p className="text-xs text-gray-500 mt-1">
                             <HighlightText text={p.authorName} highlight={paperSearch} /> · <HighlightText text={p.authorEmail} highlight={paperSearch} />
                           </p>
-                          <p className="text-xs text-gray-400">{new Date(p.submittedAt).toLocaleDateString()}</p>
+                          <p className="text-xs text-gray-400">{formatDate(p.submittedAt)}</p>
                           {p.status === "under_review" && p.reviewers?.length > 0 && (
                             <p className="text-xs text-blue-600 mt-1 font-medium">
                               Reviewer(s): {p.reviewers.map(rid => reviewers.find(r => r.uid === rid)?.name || "Unknown").join(", ")}
@@ -666,7 +667,7 @@ const AdminPanel = () => {
                                               <span className="text-xs text-gray-400">Confidence: {rv.confidenceLevel}</span>
                                             )}
                                           </div>
-                                          <p className="text-xs text-gray-500 mt-2">Reviewed by: {rv.reviewer?.name} ({rv.reviewer?.email}) · {new Date(rv.createdAt).toLocaleDateString()}</p>
+                                          <p className="text-xs text-gray-500 mt-2">Reviewed by: {rv.reviewer?.name} ({rv.reviewer?.email}) · {formatDate(rv.createdAt)}</p>
                                         </div>
                                         <button
                                           onClick={() => setExpandedReviewId(expandedReviewId === rv.id ? null : rv.id)}
@@ -763,7 +764,7 @@ const AdminPanel = () => {
                             )}
                           </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
-                            {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                            {formatDate(u.createdAt)}
                           </td>
                           {isAdmin && (
                             <td className="px-4 py-3">
@@ -830,7 +831,7 @@ const AdminPanel = () => {
                                   )}
                                 </td>
                                 <td className="px-4 py-3 text-gray-400 text-xs">
-                                  {rp.completedAt ? new Date(rp.completedAt).toLocaleDateString() : "—"}
+                                  {formatDate(rp.completedAt)}
                                 </td>
                               </tr>
                               {isExpanded && (
@@ -860,8 +861,8 @@ const AdminPanel = () => {
                                                       "bg-yellow-100 text-yellow-800"
                                                     }`}>{a.status}</span>
                                                   </td>
-                                                  <td className="px-3 py-2 text-gray-500">{new Date(a.assignedAt).toLocaleDateString()}</td>
-                                                  <td className="px-3 py-2 text-gray-500">{a.respondedAt ? new Date(a.respondedAt).toLocaleDateString() : "—"}</td>
+                                                  <td className="px-3 py-2 text-gray-500">{formatDate(a.assignedAt)}</td>
+                                                  <td className="px-3 py-2 text-gray-500">{formatDate(a.respondedAt)}</td>
                                                 </tr>
                                               ))}
                                             </tbody>

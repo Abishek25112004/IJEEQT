@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { formatDate } from "../../utils/dateUtils";
 import { BM25 } from "../../utils/bm25";
 import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState, HighlightText } from "../../components/common";
 
@@ -235,7 +236,7 @@ const EditorPanel = () => {
                               </h3>
                             </div>
                             <p className="text-xs text-gray-500 mt-1">{p.authorName} · {p.authorEmail}</p>
-                            <p className="text-xs text-gray-400">{new Date(p.submittedAt).toLocaleDateString()}</p>
+                            <p className="text-xs text-gray-400">{formatDate(p.submittedAt)}</p>
                             {p.status === "published" && (
                               <div className="mt-2 p-2 bg-emerald-50 border border-emerald-100 rounded text-[10px] text-emerald-800 flex flex-wrap gap-x-4 gap-y-1">
                                 {p.volume && <span><strong>Vol:</strong> {p.volume}</span>}

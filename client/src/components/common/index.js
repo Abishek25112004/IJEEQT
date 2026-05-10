@@ -2,6 +2,7 @@
 // Reusable UI primitives used across all pages
 
 import React from "react";
+import { formatDate, formatDateTime } from "../../utils/dateUtils";
 
 // ─── PDF download helper (uses backend proxy to bypass Cloudinary CORS) ──────
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -334,7 +335,7 @@ export const PaperCard = ({ paper, showStatus = false, searchTerm = "" }) => {
         )}
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <span className="text-xs text-gray-400">
-            {paper.submittedAt ? new Date(paper.submittedAt).toLocaleDateString() : ""}
+            {paper.submittedAt ? formatDate(paper.submittedAt) : ""}
             {paper.volume && ` · Vol. ${paper.volume}, Issue ${paper.issue}`}
           </span>
           <div className="flex gap-4">

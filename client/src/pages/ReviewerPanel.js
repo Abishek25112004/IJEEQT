@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { reviewerAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { formatDate } from "../utils/dateUtils";
 import { BM25 } from "../utils/bm25";
 import { PageHero, StatusBadge, Spinner, Card, Alert, EmptyState, HighlightText } from "../components/common";
 
@@ -594,7 +595,7 @@ const ReviewerPanel = () => {
                               <HighlightText text={a.paper?.title} highlight={searchTerm} />
                             </h3>
                             <p className="text-xs text-gray-500 mt-1">
-                              By <HighlightText text={a.paper?.authorName} highlight={searchTerm} /> · Assigned {new Date(a.assignedAt).toLocaleDateString()}
+                              By <HighlightText text={a.paper?.authorName} highlight={searchTerm} /> · Assigned {formatDate(a.assignedAt)}
                             </p>
                             {a.paper?.abstract && (
                               <div className="mt-2 text-xs text-gray-500">
@@ -706,7 +707,7 @@ const ReviewerPanel = () => {
                               {review.confidenceLevel && (
                                 <span className="text-xs text-gray-400">Confidence: {review.confidenceLevel}</span>
                               )}
-                              <span className="text-xs text-gray-400">· {new Date(review.createdAt).toLocaleDateString()}</span>
+                              <span className="text-xs text-gray-400">· {formatDate(review.createdAt)}</span>
                             </div>
                             {review.positives && (
                               <div className="bg-green-50 border-l-3 border-green-400 rounded-r p-3">

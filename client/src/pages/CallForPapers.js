@@ -30,11 +30,16 @@ const CallForPapers = () => {
     { event: "Publication Date", date: "June 30, 2025", done: false },
   ];
 
-  const formatDate = (dateStr) => {
-    if (!dateStr || !dateStr.includes("-")) return dateStr;
+  const formatDateCFP = (dateStr) => {
+    if (!dateStr) return "—";
+    // If it's already a readable string (e.g. "March 31, 2025"), convert it
     try {
-      const options = { year: 'numeric', month: 'long', day: 'numeric' };
-      return new Date(dateStr).toLocaleDateString(undefined, options);
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
     } catch (e) {
       return dateStr;
     }
@@ -64,7 +69,7 @@ const CallForPapers = () => {
                     <span className={`text-sm flex items-center gap-2 ${d.done ? "text-gray-400 line-through" : "text-gray-700"}`}>
                       {d.done ? "✅" : "🔹"} {d.event}
                     </span>
-                    <span className={`text-sm font-semibold ${d.done ? "text-gray-400" : "text-blue-700"}`}>{formatDate(d.date)}</span>
+                    <span className={`text-sm font-semibold ${d.done ? "text-gray-400" : "text-blue-700"}`}>{formatDateCFP(d.date)}</span>
                   </div>
                 ))}
               </div>
