@@ -129,3 +129,11 @@ model SiteContent {
   value     Json
   updatedAt DateTime @updatedAt
 }
+model HeaderLayout {
+  id          Int      @id @default(autoincrement())
+  journalName String   @unique
+  layout      Json     // [{type:'logo'|'text', x:number, y:number, fontSize?:number, scale?:number}]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
