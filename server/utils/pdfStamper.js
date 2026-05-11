@@ -47,15 +47,16 @@ async function stampPdf(pdfBuffer, options = {}) {
 
     // Header setup
     const headerFontSize = 8; // Smaller font
-    const headerY = height - 15 + topMarginOffset; 
+    // Move header down slightly so logo fits perfectly and aligns with standard 0.5 inch margins
+    const headerY = height - 30 + topMarginOffset; 
 
-    // CLEAR the area first to prevent "overwriting" if already stamped
-    // Reduced to 20pt to avoid covering the paper's main title
+    // CLEAR the area first to prevent "overwriting" if already stamped or from author's template
+    // Increased to 60pt to cover existing headers completely
     page.drawRectangle({
       x: 0,
-      y: height - 20,
+      y: height - 60,
       width: width,
-      height: 20,
+      height: 60,
       color: rgb(1, 1, 1), // Pure white
     });
     // Clear footer area too
@@ -63,38 +64,47 @@ async function stampPdf(pdfBuffer, options = {}) {
       x: 0,
       y: 0,
       width: width,
-      height: 20,
+      height: 45,
       color: rgb(1, 1, 1), // Pure white
     });
 
+    let logoY = headerY;
+    let lineY = headerY - 10;
+
     // Draw Logo if available
     if (logoImage) {
-      const logoDims = logoImage.scale(0.03); // Slightly smaller
+      const logoDims = logoImage.scale(0.03); // ~31x31 pt
+      // Vertically center logo with the text (text cap height is approx half font size)
+      logoY = headerY + (headerFontSize / 2) - (logoDims.height / 2);
+      
       page.drawImage(logoImage, {
         x: 40,
-        y: headerY - 1, // Align with text baseline more accurately
+        y: logoY,
         width: logoDims.width,
         height: logoDims.height,
       });
+      
+      // Line should be drawn safely below the logo
+      lineY = logoY - 5;
     }
 
     const headerText = journalName;
     const headerTextWidth = fontBold.widthOfTextAtSize(headerText, headerFontSize);
 
-    // Draw Header (Right-aligned or offset from logo)
+    // Draw Header
     page.drawText(headerText, {
-      x: logoImage ? 100 : (width - headerTextWidth) / 2, 
+      x: logoImage ? 85 : (width - headerTextWidth) / 2, 
       size: headerFontSize,
       font: fontBold,
       color: rgb(0.1, 0.1, 0.4), 
       y: headerY,
     });
 
-    // Draw Header line separator - REDUCED THICKNESS AND MOVED UP
+    // Draw Header line separator
     page.drawLine({
-      start: { x: 40, y: headerY - 5 },
-      end: { x: width - 40, y: headerY - 5 },
-      thickness: 0.3,
+      start: { x: 40, y: lineY },
+      end: { x: width - 40, y: lineY },
+      thickness: 0.5,
       color: rgb(0.8, 0.8, 0.8),
     });
 
