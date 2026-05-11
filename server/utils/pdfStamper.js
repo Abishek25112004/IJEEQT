@@ -48,7 +48,7 @@ async function stampPdf(pdfBuffer, options = {}) {
     // Header setup
     const headerFontSize = 8; // Smaller font
     // Move header down slightly so logo fits perfectly and aligns with standard 0.5 inch margins
-    const headerY = height - 35 + topMarginOffset; 
+    const headerY = height - 40 + topMarginOffset; 
 
     // CLEAR the area first to prevent "overwriting" if already stamped or from author's template
     // Increased to 60pt to cover existing headers completely
