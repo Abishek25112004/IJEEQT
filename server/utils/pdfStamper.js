@@ -2,7 +2,14 @@ const { PDFDocument, rgb, StandardFonts } = require("pdf-lib");
 
 /**
  * Stamps a PDF buffer with a header and footer.
- * 
+ *
+ * Strategy for clearing:
+ *   Instead of painting a large full-width white rectangle that can hide
+ *   paper content, we calculate the exact bounding box of the content we
+ *   are about to stamp (logo + text height + small padding) and draw the
+ *   white background ONLY behind that area.  The rest of the page — including
+ *   the paper title and body — is never touched.
+ *
  * @param {Buffer} pdfBuffer - The original PDF buffer.
  * @param {Object} options - Formatting options
  * @param {string} options.journalName - The name of the journal to put in header.
@@ -30,10 +37,11 @@ async function stampPdf(pdfBuffer, options = {}) {
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const pages = pdfDoc.getPages();
 
-  // Fetch logo bytes for embedding
-  let logoImage;
+  // Fetch logo bytes for embedding once (outside the page loop)
+  let logoImage = null;
   try {
-    const logoUrl = "https://res.cloudinary.com/ddiv16uib/image/upload/v1778417116/assets/journal_logo.png";
+    const logoUrl =
+      "https://res.cloudinary.com/ddiv16uib/image/upload/v1778417116/assets/journal_logo.png";
     const logoResponse = await fetch(logoUrl);
     const logoBytes = await logoResponse.arrayBuffer();
     logoImage = await pdfDoc.embedPng(logoBytes);
@@ -45,85 +53,119 @@ async function stampPdf(pdfBuffer, options = {}) {
     const page = pages[i];
     const { width, height } = page.getSize();
 
-    // Header setup
-    const headerFontSize = 8; // Smaller font
-    // Move header down slightly so logo fits perfectly and aligns with standard 0.5 inch margins
-    const headerY = height - 40 + topMarginOffset; 
+    // ─────────────────────────────────────────────
+    //  HEADER
+    // ─────────────────────────────────────────────
+    const headerFontSize = 8;
+    const padding = 4; // small breathing room around our stamped content
 
-    // CLEAR the area first to prevent "overwriting" if already stamped or from author's template
-    // Increased to 60pt to cover existing headers completely
-    page.drawRectangle({
-      x: 0,
-      y: height - 70,
-      width: width,
-      height: 70,
-      color: rgb(1, 1, 1), // Pure white
-    });
-    // Clear footer area too
-    page.drawRectangle({
-      x: 0,
-      y: 0,
-      width: width,
-      height: 45,
-      color: rgb(1, 1, 1), // Pure white
-    });
-
-    let logoY = headerY;
-    let lineY = headerY - 10;
-
-    // Draw Logo if available
+    // Pre-compute logo dimensions so we can size the clear area correctly
+    let logoDims = null;
     if (logoImage) {
-      const logoDims = logoImage.scale(0.03); // ~31x31 pt
-      // Vertically center logo with the text (text cap height is approx half font size)
-      logoY = headerY + (headerFontSize / 2) - (logoDims.height / 2);
-      
+      logoDims = logoImage.scale(0.03); // approx 31×31 pt
+    }
+
+    // The tallest element in the header row (logo height vs font cap-height)
+    const headerContentHeight = logoDims
+      ? Math.max(logoDims.height, headerFontSize)
+      : headerFontSize;
+
+    // headerY is the baseline of the text (and vertical-center anchor for logo)
+    // Position it so the block sits entirely within the top margin
+    const headerY = height - padding - headerContentHeight + topMarginOffset;
+
+    // ── Clear ONLY the area our header occupies ──────────────────────────────
+    // Top of the block = headerY + headerContentHeight (for the logo top)
+    // We add an extra 'padding' above and below for a little whitespace buffer
+    const clearHeaderTop = headerY + headerContentHeight + padding;
+    const clearHeaderBottom = headerY - padding; // separator line sits just below
+    const clearHeaderHeight = clearHeaderTop - clearHeaderBottom;
+
+    page.drawRectangle({
+      x: 0,
+      y: clearHeaderBottom,
+      width: width,
+      height: clearHeaderHeight,
+      color: rgb(1, 1, 1), // white — only as tall as our own content
+    });
+
+    // ── Draw Logo ────────────────────────────────────────────────────────────
+    let logoDrawnX = 40;
+    let textStartX = 40; // fallback if no logo
+
+    if (logoImage && logoDims) {
+      // Vertically center logo with the text baseline
+      const logoY =
+        headerY + headerFontSize / 2 - logoDims.height / 2;
+
       page.drawImage(logoImage, {
-        x: 40,
+        x: logoDrawnX,
         y: logoY,
         width: logoDims.width,
         height: logoDims.height,
       });
-      
-      // Line should be drawn safely below the logo
-      lineY = logoY - 5;
+
+      // Text starts right after the logo with a small gap
+      textStartX = logoDrawnX + logoDims.width + 6;
     }
 
-    const headerText = journalName;
-    const headerTextWidth = fontBold.widthOfTextAtSize(headerText, headerFontSize);
+    // ── Draw Journal Name ────────────────────────────────────────────────────
+    const headerTextWidth = fontBold.widthOfTextAtSize(
+      journalName,
+      headerFontSize
+    );
+    const headerTextX = logoImage
+      ? textStartX
+      : (width - headerTextWidth) / 2;
 
-    // Draw Header
-    page.drawText(headerText, {
-      x: logoImage ? 85 : (width - headerTextWidth) / 2, 
+    page.drawText(journalName, {
+      x: headerTextX,
+      y: headerY,
       size: headerFontSize,
       font: fontBold,
-      color: rgb(0.1, 0.1, 0.4), 
-      y: headerY,
+      color: rgb(0.1, 0.1, 0.4),
     });
 
-    // Draw Header line separator
+    // ── Header separator line (just below the cleared block) ─────────────────
+    const headerLineY = clearHeaderBottom;
     page.drawLine({
-      start: { x: 40, y: lineY },
-      end: { x: width - 40, y: lineY },
+      start: { x: 40, y: headerLineY },
+      end: { x: width - 40, y: headerLineY },
       thickness: 0.5,
       color: rgb(0.8, 0.8, 0.8),
     });
 
-    // Footer setup
+    // ─────────────────────────────────────────────
+    //  FOOTER
+    // ─────────────────────────────────────────────
+    const footerFontSize = 9;
     const footerTextLeft = `Vol. ${volume}, Issue ${issue}, ${year}`;
     const footerTextRight = `DOI: ${doi}`;
-    const footerFontSize = 9;
-    const footerY = 20 + bottomMarginOffset;
     const rightTextWidth = font.widthOfTextAtSize(footerTextRight, footerFontSize);
 
-    // Draw Footer line separator
+    // footerY is the text baseline
+    const footerY = 10 + bottomMarginOffset;
+
+    // Clear ONLY the area occupied by footer text + separator line
+    const footerLineY = footerY + footerFontSize + padding;
+    const clearFooterHeight = footerLineY + 2 + padding - 0; // from y=0
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: width,
+      height: clearFooterHeight,
+      color: rgb(1, 1, 1),
+    });
+
+    // ── Footer separator line ────────────────────────────────────────────────
     page.drawLine({
-      start: { x: 40, y: footerY + 15 },
-      end: { x: width - 40, y: footerY + 15 },
-      thickness: 1,
+      start: { x: 40, y: footerLineY },
+      end: { x: width - 40, y: footerLineY },
+      thickness: 0.5,
       color: rgb(0.8, 0.8, 0.8),
     });
 
-    // Draw Footer Text
+    // ── Footer Text ──────────────────────────────────────────────────────────
     page.drawText(footerTextLeft, {
       x: 40,
       y: footerY,
