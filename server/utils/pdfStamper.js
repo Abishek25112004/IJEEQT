@@ -57,64 +57,19 @@ async function stampPdf(pdfBuffer, options = {}) {
       .replace(/\{year\}/gi, year)
       .replace(/\{doi\}/gi, doi);
 
-  // ── Determine header/footer zone heights ───────────────────────────────────
-  // Canvas coordinates: Y=0 is top, Y=842 is bottom (A4).
-  // We split into header zone (top) and footer zone (bottom).
-  let headerZoneH = 40; // default header zone in PDF points
-  let footerZoneH = 30; // default footer zone in PDF points
-
-  if (headerLayout && Array.isArray(headerLayout) && headerLayout.length > 0) {
-    // Header elements: canvas Y < 400 (top half)
-    const headerEls = headerLayout.filter((el) => (el.y || 0) < 400);
-    const footerEls = headerLayout.filter((el) => (el.y || 0) >= 400);
-
-    if (headerEls.length > 0) {
-      // Header zone = max canvas-Y of any header element + padding
-      const maxHeaderCanvasY = Math.max(...headerEls.map((el) => {
-        if (el.type === "logo") return (el.y || 0) + 40; // logo height approx
-        if (el.type === "text") return (el.y || 0) + (el.fontSize || 8) + 4;
-        return (el.y || 0) + 4;
-      }));
-      headerZoneH = maxHeaderCanvasY + 6; // small extra padding
-    }
-
-    if (footerEls.length > 0) {
-      // Footer zone = distance from lowest footer element to page bottom
-      const minFooterCanvasY = Math.min(...footerEls.map((el) => el.y || 842));
-      footerZoneH = 842 - minFooterCanvasY + 20; // 20pt padding below
-    }
-  }
-
   // ── Process each page ──────────────────────────────────────────────────────
   for (let i = 0; i < srcPages.length; i++) {
     const srcPage = srcPages[i];
     const { width: srcW, height: srcH } = srcPage.getSize();
 
-    // Embed the original page into the output doc, clipping the header and footer
-    // PDF coordinates: bottom-left origin. We clip by excluding top and bottom zones.
-    const embeddedPage = await outDoc.embedPage(srcPage, {
-      left: 0,
-      bottom: footerZoneH,       // clip out footer zone
-      right: srcW,
-      top: srcH - headerZoneH,   // clip out header zone
-    });
+    // Embed the full original page — no clipping, no white rectangles
+    const embeddedPage = await outDoc.embedPage(srcPage);
 
     // Create a new page with the same dimensions as the original
     const newPage = outDoc.addPage([srcW, srcH]);
 
-    // Fill page white first (clean slate)
-    newPage.drawRectangle({
-      x: 0, y: 0,
-      width: srcW, height: srcH,
-      color: rgb(1, 1, 1),
-    });
-
-    // Draw the clipped original content in the content zone
-    // The embedded page is positioned so its bottom edge starts at the footer zone top
-    newPage.drawPage(embeddedPage, {
-      x: 0,
-      y: footerZoneH,
-    });
+    // Draw the full original content as-is
+    newPage.drawPage(embeddedPage, { x: 0, y: 0 });
 
     // ── Draw header & footer ─────────────────────────────────────────────
     if (headerLayout && Array.isArray(headerLayout) && headerLayout.length > 0) {
