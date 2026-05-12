@@ -386,7 +386,7 @@ const deletePaper = async (req, res) => {
 const formatPdf = async (req, res) => {
   try {
     const { id } = req.params;
-    const { volume, issue, doi, year, topMargin, bottomMargin, isPreview } = req.body;
+    const { volume, issue, doi, year, isPreview } = req.body;
 
     const isAdmin = (req.user.roles || []).includes("admin") || req.user.role === "admin";
     if (!isAdmin) {
@@ -426,14 +426,20 @@ const formatPdf = async (req, res) => {
       return res.status(502).json({ error: "Failed to download PDF: " + fetchErr.message });
     }
 
-    // Stamp the PDF
+    // Fetch custom layout if exists
+    const journalName = "International Journal of Engineering Education and Quality Technologies (IJEEQT)";
+    const layoutRecord = await prisma.headerLayout.findUnique({
+      where: { journalName }
+    });
+
+    // Stamp the PDF using layout positions (no margin offsets needed)
     const stampedBuffer = await stampPdf(pdfBuffer, {
+      journalName,
       volume: volume || "",
       issue: issue || "",
       year: year || "",
       doi: doi || "",
-      topMarginOffset: Number(topMargin) || 0,
-      bottomMarginOffset: Number(bottomMargin) || 0
+      headerLayout: layoutRecord ? layoutRecord.layout : null
     });
 
     if (isPreview) {

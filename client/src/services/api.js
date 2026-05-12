@@ -118,4 +118,10 @@ export const contentAPI = {
   updateContent: (key, value) => api.put(`/content/${key}`, { value }),
 };
 
+// ─── Header/Footer Layout ─────────────────────────────────────────────────────
+export const headerLayoutAPI = {
+  getLayout: (journal) => api.get("/header-layout", { params: { journal } }),
+  saveLayout: (data) => api.post("/header-layout", data),
+};
+
 export default api;

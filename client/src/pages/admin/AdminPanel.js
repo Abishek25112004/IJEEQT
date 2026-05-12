@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { Link } from "react-router-dom";
 
 import { useLocation } from "react-router-dom";
 import { adminAPI, papersAPI } from "../../services/api";
@@ -164,8 +165,6 @@ const FormatAndPublishModal = ({ paperId, paperTitle, totalPublishedCount, onPub
   const [iss, setIss] = useState(Math.floor((new Date().getMonth() / 3)) + 1);
   const [yr, setYr] = useState(new Date().getFullYear().toString());
   const [doi, setDoi] = useState((totalPublishedCount + 1).toString());
-  const [topMargin, setTopMargin] = useState(0);
-  const [bottomMargin, setBottomMargin] = useState(0);
   const [previewPdf, setPreviewPdf] = useState(null);
   const [formatting, setFormatting] = useState(false);
   const [applied, setApplied] = useState(false);
@@ -174,7 +173,7 @@ const FormatAndPublishModal = ({ paperId, paperTitle, totalPublishedCount, onPub
     setErr(""); setPreviewPdf(null); setFormatting(true);
     try {
       const res = await papersAPI.formatPdf(paperId, {
-        volume: vol, issue: iss, year: yr, doi: doi, topMargin, bottomMargin, isPreview: true
+        volume: vol, issue: iss, year: yr, doi: doi, isPreview: true
       });
       setPreviewPdf(res.base64);
     } catch (e) {
@@ -188,7 +187,7 @@ const FormatAndPublishModal = ({ paperId, paperTitle, totalPublishedCount, onPub
     setErr(""); setFormatting(true);
     try {
       await papersAPI.formatPdf(paperId, {
-        volume: vol, issue: iss, year: yr, doi: doi, topMargin, bottomMargin, isPreview: false
+        volume: vol, issue: iss, year: yr, doi: doi, isPreview: false
       });
       setMsg("Format applied and original PDF overwritten!");
       setApplied(true);
@@ -234,14 +233,12 @@ const FormatAndPublishModal = ({ paperId, paperTitle, totalPublishedCount, onPub
               <input type="text" value={doi} onChange={e=>setDoi(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
             </div>
             <hr className="my-2 border-gray-200" />
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Top Margin Offset (px)</label>
-              <input type="number" value={topMargin} onChange={e=>setTopMargin(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Bottom Margin Offset (px)</label>
-              <input type="number" value={bottomMargin} onChange={e=>setBottomMargin(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
-            </div>
+            <Link
+              to="/admin/header-layout"
+              className="block w-full text-center bg-gray-100 text-gray-700 py-2 rounded text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              ⚙️ Edit Header/Footer Layout
+            </Link>
             
             <button onClick={handlePreview} disabled={formatting} className="w-full bg-blue-100 text-blue-700 py-2 rounded text-sm font-semibold hover:bg-blue-200 mt-4 transition-colors">
               {formatting && !applied ? "Generating..." : "Generate Preview"}

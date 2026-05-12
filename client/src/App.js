@@ -23,6 +23,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import AdminPanel from "./pages/admin/AdminPanel";
 import SiteContentPage from "./pages/admin/SiteContentPage";
+import HeaderFooterLayoutEditor from "./pages/admin/HeaderFooterLayoutEditor";
 import ReviewerPanel from "./pages/ReviewerPanel";
 import EditorPanel from "./pages/editor/EditorPanel";
 
@@ -82,6 +83,17 @@ function App() {
               <Layout>
                 <ProtectedRoute requiredRole="admin">
                   <AdminPanel />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/admin/header-layout"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole="admin">
+                  <HeaderFooterLayoutEditor />
                 </ProtectedRoute>
               </Layout>
             }
