@@ -339,7 +339,7 @@ const assignReviewer = async (req, res) => {
 
 /**
  * DELETE /api/papers/:id
- * Delete a paper — admin or paper owner (if not published)
+ * Delete a paper — admin only. Removes file from Cloudinary and all related DB records.
  */
 const deletePaper = async (req, res) => {
   try {
@@ -350,29 +350,38 @@ const deletePaper = async (req, res) => {
       return res.status(404).json({ error: "Paper not found" });
     }
 
-    const isAdmin = ["admin", "editor"].includes(req.user.role);
-    const isOwner = paper.authorId === req.user.uid;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: "Access denied" });
+    const isAdmin = (req.user.roles || []).includes("admin") || req.user.role === "admin";
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Only admins can delete papers." });
     }
 
-    if (paper.status === "published" && !isAdmin) {
-      return res.status(403).json({ error: "Cannot delete a published paper" });
-    }
-
-    // Delete file from Cloudinary if exists
+    // Delete formatted file from Cloudinary
     if (paper.fileName) {
       try {
         await cloudinary.uploader.destroy(paper.fileName, { resource_type: "raw" });
       } catch (e) {
-        console.warn("Could not delete file from Cloudinary storage:", e.message);
+        console.warn("Could not delete formatted file from Cloudinary:", e.message);
       }
     }
 
+    // Delete original file from Cloudinary (if different from formatted)
+    if (paper.originalFileName && paper.originalFileName !== paper.fileName) {
+      try {
+        await cloudinary.uploader.destroy(paper.originalFileName, { resource_type: "raw" });
+      } catch (e) {
+        console.warn("Could not delete original file from Cloudinary:", e.message);
+      }
+    }
+
+    // Delete all related records first (cascade)
+    await prisma.review.deleteMany({ where: { paperId: id } });
+    await prisma.reviewAssignment.deleteMany({ where: { paperId: id } });
+    await prisma.payment.deleteMany({ where: { paperId: id } });
+
+    // Delete the paper itself
     await prisma.paper.delete({ where: { id } });
 
-    res.json({ message: "Paper deleted successfully" });
+    res.json({ message: "Paper and all associated data deleted successfully." });
   } catch (error) {
     console.error("Error deleting paper:", error);
     res.status(500).json({ error: "Internal server error" });

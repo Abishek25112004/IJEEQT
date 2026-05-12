@@ -289,6 +289,7 @@ const AdminPanel = () => {
   const [reviewerSearch, setReviewerSearch] = useState("");
   const [expandedReviewerId, setExpandedReviewerId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { uid, name } or null
+  const [deletePaperConfirm, setDeletePaperConfirm] = useState(null); // { id, title } or null
 
   const isAdmin = profile?.roles?.includes("admin") || profile?.role === "admin";
 
@@ -619,6 +620,14 @@ const AdminPanel = () => {
                               setMsg={setMsg} 
                             />
                           )}
+                          {/* Delete Paper Button */}
+                          <button
+                            onClick={() => setDeletePaperConfirm({ id: p.id, title: p.title })}
+                            title="Delete this paper permanently"
+                            className="text-xs px-2.5 py-1.5 rounded font-medium bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors"
+                          >
+                            🗑️ Delete
+                          </button>
                         </div>
                       </div>
                       {p.keywords?.length > 0 && (
@@ -922,6 +931,51 @@ const AdminPanel = () => {
                 className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Paper Confirmation Modal */}
+      {deletePaperConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Delete Paper</h3>
+              <p className="text-sm text-gray-500 text-center">
+                Are you sure you want to delete <strong className="text-gray-900">"{deletePaperConfirm.title}"</strong>?
+              </p>
+              <p className="text-xs text-red-500 text-center mt-2 bg-red-50 rounded-lg py-2 px-3">
+                ⚠️ This will permanently delete the paper, all reviews, reviewer assignments, payments, and uploaded files from cloud storage.
+              </p>
+            </div>
+            <div className="flex border-t border-gray-200">
+              <button
+                onClick={() => setDeletePaperConfirm(null)}
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await papersAPI.delete(deletePaperConfirm.id);
+                    setMsg(`Paper "${deletePaperConfirm.title}" deleted successfully.`);
+                    load();
+                  } catch (e) {
+                    setErr("Failed to delete paper: " + e.message);
+                  }
+                  setDeletePaperConfirm(null);
+                }}
+                className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"
+              >
+                Delete Permanently
               </button>
             </div>
           </div>
