@@ -398,13 +398,25 @@ const formatPdf = async (req, res) => {
       return res.status(404).json({ error: "Paper or file not found" });
     }
 
-    // Download PDF from Cloudinary using ZIP download (bypasses delivery restrictions)
+    // On first format, save the original file info so we can always re-stamp from clean source
+    if (!paper.originalFileName) {
+      await prisma.paper.update({
+        where: { id },
+        data: {
+          originalFileUrl: paper.fileUrl,
+          originalFileName: paper.fileName,
+        },
+      });
+    }
+
+    // Always download the ORIGINAL (clean, unformatted) PDF — never the already-stamped one
+    const sourceFileName = paper.originalFileName || paper.fileName;
+
     let pdfBuffer;
     try {
       const AdmZip = require("adm-zip");
-      // Generate a signed ZIP download URL via Cloudinary API
       const zipUrl = cloudinary.utils.download_zip_url({
-        public_ids: [paper.fileName],
+        public_ids: [sourceFileName],
         resource_type: "raw",
       });
       const zipRes = await fetch(zipUrl);
@@ -413,7 +425,6 @@ const formatPdf = async (req, res) => {
         return res.status(502).json({ error: "Failed to download file from storage." });
       }
       const zipBuffer = Buffer.from(await zipRes.arrayBuffer());
-      // Extract the PDF from the ZIP
       const zip = new AdmZip(zipBuffer);
       const entries = zip.getEntries();
       const pdfEntry = entries.find(e => e.entryName.endsWith(".pdf"));
@@ -426,13 +437,13 @@ const formatPdf = async (req, res) => {
       return res.status(502).json({ error: "Failed to download PDF: " + fetchErr.message });
     }
 
-    // Fetch custom layout if exists
+    // Fetch custom drag-and-drop layout
     const journalName = "International Journal of Engineering Education and Quality Technologies (IJEEQT)";
     const layoutRecord = await prisma.headerLayout.findUnique({
       where: { journalName }
     });
 
-    // Stamp the PDF using layout positions (no margin offsets needed)
+    // Stamp the PDF — always uses drag-and-drop layout (built-in defaults if none saved)
     const stampedBuffer = await stampPdf(pdfBuffer, {
       journalName,
       volume: volume || "",

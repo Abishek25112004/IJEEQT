@@ -44,6 +44,8 @@ model Paper {
   
   fileUrl        String?
   fileName       String?
+  originalFileUrl  String?   // Preserved clean copy for re-formatting
+  originalFileName String?
   
   status         String    @default("submitted") 
   // Statuses: submitted, under_review, revision_required, accepted, rejected, published

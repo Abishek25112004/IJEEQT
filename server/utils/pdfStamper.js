@@ -1,21 +1,31 @@
 const { PDFDocument, rgb, StandardFonts } = require("pdf-lib");
 
+// ── Default layout (used when no custom layout is saved in the database) ─────
+// These are the same defaults shown in the drag-and-drop editor canvas.
+// Canvas coordinates: top-left origin, Y increases downward.
+const DEFAULT_LAYOUT = [
+  { id: "logo", type: "logo", x: 40, y: 8, scale: 0.03 },
+  { id: "journalName", type: "text", text: "{journalName}", x: 78, y: 14, fontSize: 8, bold: true },
+  { id: "headerLine", type: "line", x1: 40, x2: 555, y: 34, thickness: 0.5 },
+  { id: "footerLine", type: "line", x1: 40, x2: 555, y: 815, thickness: 0.5 },
+  { id: "footerLeft", type: "text", text: "Vol. {volume}, Issue {issue}, {year}", x: 40, y: 828, fontSize: 9, bold: false },
+  { id: "footerRight", type: "text", text: "DOI: {doi}", x: 450, y: 828, fontSize: 9, bold: false },
+];
+
 /**
- * Stamps a PDF buffer with a header and footer using the "fresh page" strategy:
- *   1. Creates a brand-new PDF document
- *   2. Embeds each original page as a clipped content block (header/footer zones excluded)
- *   3. Draws header and footer elements into the clean margin areas
+ * Stamps a PDF buffer with header and footer using the drag-and-drop layout.
  *
- * This approach guarantees zero overlap between branding and paper content.
+ * Strategy: creates a brand-new PDF, embeds each original page fully,
+ * then draws branding elements on top at the exact positions from the layout.
  *
  * @param {Buffer} pdfBuffer - The original PDF buffer.
  * @param {Object} options
- * @param {string} options.journalName - Journal name (fallback header).
+ * @param {string} options.journalName
  * @param {string} options.volume
  * @param {string} options.issue
  * @param {string} options.year
  * @param {string} options.doi
- * @param {Array}  options.headerLayout - Optional layout from the drag-and-drop editor.
+ * @param {Array}  options.headerLayout - Layout from the drag-and-drop editor (or null for defaults).
  * @returns {Promise<Buffer>}
  */
 async function stampPdf(pdfBuffer, options = {}) {
@@ -27,6 +37,11 @@ async function stampPdf(pdfBuffer, options = {}) {
     doi = "",
     headerLayout = null,
   } = options;
+
+  // Use saved layout or fall back to built-in defaults
+  const layout = (headerLayout && Array.isArray(headerLayout) && headerLayout.length > 0)
+    ? headerLayout
+    : DEFAULT_LAYOUT;
 
   // ── Load original PDF ──────────────────────────────────────────────────────
   const srcDoc = await PDFDocument.load(pdfBuffer);
@@ -49,9 +64,10 @@ async function stampPdf(pdfBuffer, options = {}) {
     console.warn("Failed to fetch or embed logo for PDF stamping:", e.message);
   }
 
-  // ── Helper: replace placeholders ───────────────────────────────────────────
+  // ── Helper: replace all placeholders ───────────────────────────────────────
   const sub = (text) =>
     text
+      .replace(/\{journalName\}/gi, journalName)
       .replace(/\{volume\}/gi, volume)
       .replace(/\{issue\}/gi, issue)
       .replace(/\{year\}/gi, year)
@@ -65,119 +81,49 @@ async function stampPdf(pdfBuffer, options = {}) {
     // Embed the full original page — no clipping, no white rectangles
     const embeddedPage = await outDoc.embedPage(srcPage);
 
-    // Create a new page with the same dimensions as the original
+    // Create a new page with the same dimensions
     const newPage = outDoc.addPage([srcW, srcH]);
 
     // Draw the full original content as-is
     newPage.drawPage(embeddedPage, { x: 0, y: 0 });
 
-    // ── Draw header & footer ─────────────────────────────────────────────
-    if (headerLayout && Array.isArray(headerLayout) && headerLayout.length > 0) {
-      // Custom layout
-      headerLayout.forEach((el) => {
-        // Convert canvas Y (top-origin) to PDF Y (bottom-origin)
-        const pdfY = srcH - (el.y || 0);
+    // ── Draw layout elements on top ──────────────────────────────────────
+    layout.forEach((el) => {
+      // Convert canvas Y (top-origin) to PDF Y (bottom-origin)
+      const pdfY = srcH - (el.y || 0);
 
-        if (el.type === "logo" && logoImage) {
-          const scale = el.scale || 0.03;
-          const dims = logoImage.scale(scale);
-          newPage.drawImage(logoImage, {
-            x: el.x || 0,
-            y: pdfY - dims.height,
-            width: dims.width,
-            height: dims.height,
-          });
-        } else if (el.type === "text" && el.text) {
-          const size = el.fontSize || 8;
-          const resolvedText = sub(el.text);
-          const useBold = el.bold || false;
-          newPage.drawText(resolvedText, {
-            x: el.x || 0,
-            y: pdfY - size,
-            size,
-            font: useBold ? fontBold : font,
-            color: rgb(0.1, 0.1, 0.4),
-          });
-        } else if (el.type === "line") {
-          const x1 = el.x1 || 40;
-          const x2 = el.x2 || srcW - 40;
-          const thickness = el.thickness || 0.5;
-          newPage.drawLine({
-            start: { x: x1, y: pdfY },
-            end: { x: x2, y: pdfY },
-            thickness,
-            color: rgb(0.8, 0.8, 0.8),
-          });
-        }
-      });
-    } else {
-      // ── Fallback fixed layout ──────────────────────────────────────────
-      const headerFontSize = 8;
-      const padding = 4;
-
-      let logoDims = null;
-      if (logoImage) logoDims = logoImage.scale(0.03);
-
-      const headerContentH = logoDims
-        ? Math.max(logoDims.height, headerFontSize)
-        : headerFontSize;
-      const headerY = srcH - padding - headerContentH;
-
-      // Logo
-      let textStartX = 40;
-      if (logoImage && logoDims) {
-        const logoY = headerY + headerFontSize / 2 - logoDims.height / 2;
+      if (el.type === "logo" && logoImage) {
+        const scale = el.scale || 0.03;
+        const dims = logoImage.scale(scale);
         newPage.drawImage(logoImage, {
-          x: 40, y: logoY,
-          width: logoDims.width, height: logoDims.height,
+          x: el.x || 0,
+          y: pdfY - dims.height,
+          width: dims.width,
+          height: dims.height,
         });
-        textStartX = 40 + logoDims.width + 6;
+      } else if (el.type === "text" && el.text) {
+        const size = el.fontSize || 8;
+        const resolvedText = sub(el.text);
+        const useBold = el.bold || false;
+        newPage.drawText(resolvedText, {
+          x: el.x || 0,
+          y: pdfY - size,
+          size,
+          font: useBold ? fontBold : font,
+          color: rgb(0.1, 0.1, 0.4),
+        });
+      } else if (el.type === "line") {
+        const x1 = el.x1 || 40;
+        const x2 = el.x2 || srcW - 40;
+        const thickness = el.thickness || 0.5;
+        newPage.drawLine({
+          start: { x: x1, y: pdfY },
+          end: { x: x2, y: pdfY },
+          thickness,
+          color: rgb(0.8, 0.8, 0.8),
+        });
       }
-
-      // Journal name
-      const headerTextW = fontBold.widthOfTextAtSize(journalName, headerFontSize);
-      const headerTextX = logoImage ? textStartX : (srcW - headerTextW) / 2;
-      newPage.drawText(journalName, {
-        x: headerTextX, y: headerY,
-        size: headerFontSize,
-        font: fontBold,
-        color: rgb(0.1, 0.1, 0.4),
-      });
-
-      // Header line
-      const headerLineY = headerY - padding;
-      newPage.drawLine({
-        start: { x: 40, y: headerLineY },
-        end: { x: srcW - 40, y: headerLineY },
-        thickness: 0.5,
-        color: rgb(0.8, 0.8, 0.8),
-      });
-
-      // ── Footer ──
-      const footerFontSize = 9;
-      const footerTextLeft = `Vol. ${volume}, Issue ${issue}, ${year}`;
-      const footerTextRight = `DOI: ${doi}`;
-      const rightTextW = font.widthOfTextAtSize(footerTextRight, footerFontSize);
-      const footerY = 10;
-      const footerLineY = footerY + footerFontSize + padding;
-
-      newPage.drawLine({
-        start: { x: 40, y: footerLineY },
-        end: { x: srcW - 40, y: footerLineY },
-        thickness: 0.5,
-        color: rgb(0.8, 0.8, 0.8),
-      });
-      newPage.drawText(footerTextLeft, {
-        x: 40, y: footerY,
-        size: footerFontSize, font,
-        color: rgb(0.3, 0.3, 0.3),
-      });
-      newPage.drawText(footerTextRight, {
-        x: srcW - 40 - rightTextW, y: footerY,
-        size: footerFontSize, font,
-        color: rgb(0.3, 0.3, 0.3),
-      });
-    }
+    });
   }
 
   const pdfBytes = await outDoc.save();
