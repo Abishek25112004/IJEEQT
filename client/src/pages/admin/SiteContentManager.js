@@ -374,7 +374,7 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
         {
           uId: generateId(),
           category: "Editor-in-Chief",
-          members: [{ uId: generateId(), name: "Prof. Dr. Rajesh Kumar", institution: "IIT Delhi", country: "India", specialization: "AI" }]
+          members: [{ uId: generateId(), name: "Prof. Dr. Rajesh Kumar", email: "editor@ijart.org", institution: "IIT Delhi", country: "India", specialization: "AI" }]
         }
       ]);
     } else {
@@ -452,13 +452,21 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
                         {cat.members.map((mem, mIdx) => (
                           <SortableItem key={mem.uId} id={mem.uId}>
                             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                              <div className="col-span-12 sm:col-span-3">
+                              <div className="col-span-12 sm:col-span-2">
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
                                 <input value={mem.name} onChange={(e) => {
                                   const newCats = [...categories];
                                   newCats[cIdx].members[mIdx].name = e.target.value;
                                   setCategories(newCats);
                                 }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                              </div>
+                              <div className="col-span-12 sm:col-span-2">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                                <input value={mem.email || ""} onChange={(e) => {
+                                  const newCats = [...categories];
+                                  newCats[cIdx].members[mIdx].email = e.target.value;
+                                  setCategories(newCats);
+                                }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" placeholder="Optional" />
                               </div>
                               <div className="col-span-12 sm:col-span-3">
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Institution</label>
@@ -479,7 +487,7 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
                                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               </div>
-                              <div className="col-span-12 sm:col-span-3">
+                              <div className="col-span-12 sm:col-span-2">
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Specialization</label>
                                 <input value={mem.specialization} onChange={(e) => {
                                   const newCats = [...categories];
@@ -501,7 +509,7 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
                     </DndContext>
                     <button onClick={() => {
                       const newCats = [...categories];
-                      newCats[cIdx].members.push({ uId: generateId(), name: "", institution: "", country: "", specialization: "" });
+                      newCats[cIdx].members.push({ uId: generateId(), name: "", email: "", institution: "", country: "", specialization: "" });
                       setCategories(newCats);
                     }} className="mt-2 text-blue-600 hover:bg-blue-50 text-sm font-medium px-4 py-2 rounded-lg border border-dashed border-blue-200">
                       + Add Member

@@ -28,20 +28,21 @@ const DEFAULT_BOARD = {
     },
     {
       name: "Dr. Maria Garcia",
+      email: "m.garcia@upm.es",
       institution: "Technical University of Madrid",
       country: "Spain",
       specialization: "Renewable Energy Systems",
     },
   ],
   "Editorial Board Members": [
-    { name: "Prof. David Chen", institution: "Stanford University", country: "USA", specialization: "Nanomaterials" },
-    { name: "Dr. Amara Diallo", institution: "University of Dakar", country: "Senegal", specialization: "Biomedical Engineering" },
-    { name: "Prof. Elena Petrova", institution: "Moscow State Technical University", country: "Russia", specialization: "Applied Mathematics" },
-    { name: "Dr. James Wilson", institution: "University of Cambridge", country: "UK", specialization: "Structural Engineering" },
-    { name: "Prof. Li Wei", institution: "Tsinghua University", country: "China", specialization: "Electronics & VLSI" },
-    { name: "Dr. Fatima Al-Hassan", institution: "King Abdullah University", country: "Saudi Arabia", specialization: "Chemical Engineering" },
-    { name: "Prof. Carlos Mendez", institution: "University of São Paulo", country: "Brazil", specialization: "Environmental Engineering" },
-    { name: "Dr. Ananya Sharma", institution: "IISc Bangalore", country: "India", specialization: "Computational Biology" },
+    { name: "Prof. David Chen", email: "d.chen@stanford.edu", institution: "Stanford University", country: "USA", specialization: "Nanomaterials" },
+    { name: "Dr. Amara Diallo", email: "a.diallo@ucad.sn", institution: "University of Dakar", country: "Senegal", specialization: "Biomedical Engineering" },
+    { name: "Prof. Elena Petrova", email: "e.petrova@mstu.ru", institution: "Moscow State Technical University", country: "Russia", specialization: "Applied Mathematics" },
+    { name: "Dr. James Wilson", email: "j.wilson@cam.ac.uk", institution: "University of Cambridge", country: "UK", specialization: "Structural Engineering" },
+    { name: "Prof. Li Wei", email: "li.wei@tsinghua.edu.cn", institution: "Tsinghua University", country: "China", specialization: "Electronics & VLSI" },
+    { name: "Dr. Fatima Al-Hassan", email: "f.alhassan@kaust.edu.sa", institution: "King Abdullah University", country: "Saudi Arabia", specialization: "Chemical Engineering" },
+    { name: "Prof. Carlos Mendez", email: "c.mendez@usp.br", institution: "University of São Paulo", country: "Brazil", specialization: "Environmental Engineering" },
+    { name: "Dr. Ananya Sharma", email: "a.sharma@iisc.ac.in", institution: "IISc Bangalore", country: "India", specialization: "Computational Biology" },
   ],
 };
 
@@ -54,6 +55,11 @@ const MemberCard = ({ member }) => (
       <div className="min-w-0">
         <p className="font-semibold text-gray-900 text-sm leading-snug">{member.name}</p>
         <p className="text-gray-600 text-xs mt-0.5">{member.institution}</p>
+        {member.email && (
+          <a href={`mailto:${member.email}`} className="text-blue-500 hover:underline text-[10px] block mt-0.5">
+            {member.email}
+          </a>
+        )}
         <p className="text-gray-400 text-xs">{member.country}</p>
         <p className="text-blue-600 text-xs mt-1 italic">{member.specialization}</p>
       </div>
