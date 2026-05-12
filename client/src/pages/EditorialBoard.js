@@ -49,7 +49,7 @@ const MemberCard = ({ member }) => (
   <Card className="p-4 hover:shadow-md transition-shadow">
     <div className="flex items-start gap-3">
       <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold text-sm flex items-center justify-center shrink-0">
-        {member.name.split(" ").pop()[0]}
+        {(member?.name || "U").split(" ").pop()[0] || "U"}
       </div>
       <div className="min-w-0">
         <p className="font-semibold text-gray-900 text-sm leading-snug">{member.name}</p>
@@ -87,14 +87,14 @@ const EditorialBoard = () => {
       {loading ? (
         <Spinner center />
       ) : (
-        Object.entries(board).map(([section, members]) => (
+        Object.entries(board || {}).map(([section, members]) => (
           <div key={section}>
             <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3 mb-5">
               {section}
             </h2>
             <div className={`grid gap-4 ${section === "Editor-in-Chief" ? "grid-cols-1 max-w-md" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
-              {members.map((m) => (
-                <MemberCard key={m.name} member={m} />
+              {Array.isArray(members) && members.map((m, idx) => (
+                <MemberCard key={m?.name || idx} member={m} />
               ))}
             </div>
           </div>

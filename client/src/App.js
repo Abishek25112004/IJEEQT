@@ -8,6 +8,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/common";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 // Pages
 import Home from "./pages/Home";
@@ -40,7 +41,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           {/* Auth pages — no Navbar */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -151,6 +153,7 @@ function App() {
             }
           />
         </Routes>
+        </ErrorBoundary>
 
         <ToastContainer position="top-right" autoClose={4000} hideProgressBar={false} />
       </AuthProvider>

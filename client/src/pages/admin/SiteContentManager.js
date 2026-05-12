@@ -207,7 +207,7 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
       setForm(prev => ({
         ...prev,
         ...data,
-        importantDates: data.importantDates ? data.importantDates.map(d => ({ ...d, uId: d.uId || generateId() })) : prev.importantDates,
+        importantDates: Array.isArray(data.importantDates) ? data.importantDates.map(d => ({ ...d, uId: d.uId || generateId() })) : (prev.importantDates || []),
       }));
     }
   }, [data]);
@@ -378,11 +378,15 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
         }
       ]);
     } else {
-      const arr = Object.keys(data).map(key => ({
-        uId: generateId(),
-        category: key,
-        members: (data[key] || []).map(m => ({ ...m, uId: generateId() }))
-      }));
+      const arr = Object.keys(data || {}).map(key => {
+        const membersRaw = data[key];
+        const membersArray = Array.isArray(membersRaw) ? membersRaw : [];
+        return {
+          uId: generateId(),
+          category: key,
+          members: membersArray.map(m => (typeof m === 'object' && m !== null ? { ...m, uId: generateId() } : { uId: generateId(), name: String(m) }))
+        };
+      });
       setCategories(arr);
     }
   }, [data]);
@@ -527,13 +531,13 @@ const ContactsForm = ({ data, onSave, saving }) => {
   const [contacts, setContacts] = useState([]);
 
   useEffect(() => {
-    const raw = Array.isArray(data) && data.length > 0 ? data : [
+    const raw = Array.isArray(data) ? data : [
       { icon: "📧", label: "Editorial Email", value: "editor@ijart.org" },
       { icon: "📧", label: "Submissions", value: "submit@ijart.org" },
       { icon: "📞", label: "Phone", value: "+91 8072287692" },
       { icon: "📍", label: "Address", value: "Academic Research Press" }
     ];
-    setContacts(raw.map(c => ({ ...c, uId: generateId() })));
+    setContacts(raw.map(c => (typeof c === 'object' && c !== null ? { ...c, uId: generateId() } : { uId: generateId(), label: "Detail", value: String(c) })));
   }, [data]);
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
