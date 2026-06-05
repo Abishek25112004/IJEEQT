@@ -1,10 +1,11 @@
-const { Pool } = require('pg');
-const { PrismaPg } = require('@prisma/adapter-pg');
+const mariadb = require('mariadb');
+const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
 const { PrismaClient } = require('@prisma/client');
 
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+// Prisma requires the protocol to be mariadb: for the adapter
+const connectionString = process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/^mysql:/, 'mariadb:') : undefined;
+const pool = mariadb.createPool(connectionString);
+const adapter = new PrismaMariaDb(pool);
 const prisma = new PrismaClient({ adapter });
 
 module.exports = prisma;
