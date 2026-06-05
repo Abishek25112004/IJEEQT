@@ -99,7 +99,7 @@ const submitPaper = async (req, res) => {
     });
   } catch (error) {
     console.error("Paper submission error:", error);
-    res.status(500).json({ error: "Internal server error during paper submission" });
+    res.status(500).json({ error: "Internal server error: " + (error.message || String(error)) });
   }
 };
 
