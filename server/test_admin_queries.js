@@ -20,18 +20,33 @@ if (process.env.DATABASE_URL) {
 const adapter = new PrismaMariaDb(poolConfig);
 const prisma = new PrismaClient({ adapter });
 
-async function makeAdmin() {
+async function testAdminQueries() {
   try {
-    const user = await prisma.user.update({
-      where: { email: 'abishek25112004@gmail.com' },
-      data: { roles: ['admin', 'author', 'reviewer', 'editor', 'manager'] },
-    });
-    console.log("Success! Updated user with ALL roles:", user.email);
+    console.log("Testing getUsers...");
+    await prisma.user.findMany();
+    console.log("Success getUsers");
+    
+    console.log("Testing getPapers...");
+    await prisma.paper.findMany();
+    console.log("Success getPapers");
+
+    console.log("Testing getReviewerProfiles...");
+    await prisma.reviewerProfile.findMany();
+    console.log("Success getReviewerProfiles");
+
+    console.log("Testing getReviewAssignments...");
+    await prisma.paper.findMany({ where: { status: 'under_review' } }); // Approx
+    console.log("Success getReviewAssignments");
+
+    console.log("Testing getReviews...");
+    await prisma.review.findMany();
+    console.log("Success getReviews");
+
   } catch (error) {
-    console.error("Failed:", error);
+    console.error("Query failed:", error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-makeAdmin();
+testAdminQueries();
