@@ -24,7 +24,7 @@ async function runMigration() {
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
       database: parsed.pathname.substring(1),
-      ssl: parsed.searchParams.get('sslaccept') === 'strict' ? { rejectUnauthorized: true } : undefined
+      ssl: parsed.searchParams.get('sslaccept') === 'strict' ? { rejectUnauthorized: false } : undefined
     };
   } catch (err) {
     poolConfig = tidbUrl.trim().replace(/^mysql:/, 'mariadb:');
@@ -34,14 +34,24 @@ async function runMigration() {
   const adapter = new PrismaMariaDb(pool);
   const prisma = new PrismaClient({ adapter });
 
-  const sql = postgres(pgUrl, {
-    ssl: "require",
+  let finalPgUrl = pgUrl;
+  let useSsl = "require";
+  
+  // Render's internal network doesn't use the full .render.com domain and doesn't require SSL
+  if (finalPgUrl.includes(".render.com")) {
+    try {
+      const urlObj = new URL(finalPgUrl);
+      urlObj.hostname = urlObj.hostname.split(".")[0]; // extracts just 'dpg-xxxxx-a'
+      finalPgUrl = urlObj.toString();
+      useSsl = false;
+    } catch (err) {}
+  }
+
+  const sql = postgres(finalPgUrl, {
+    ssl: useSsl,
     max: 1,
     connect_timeout: 10,
-    idle_timeout: 10,
-    debug: (connection, query, parameters) => {
-      console.log('DEBUG:', query || 'connection status check', parameters);
-    }
+    idle_timeout: 10
   });
 
   try {

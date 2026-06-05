@@ -13,7 +13,7 @@ if (process.env.DATABASE_URL) {
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
       database: parsed.pathname.substring(1),
-      ssl: parsed.searchParams.get('sslaccept') === 'strict' ? { rejectUnauthorized: true } : undefined
+      ssl: parsed.searchParams.get('sslaccept') === 'strict' ? { rejectUnauthorized: false } : undefined
     };
   } catch (err) {
     // Fallback if URL parsing fails
