@@ -420,7 +420,15 @@ const formatPdf = async (req, res) => {
     }
 
     // Always download the ORIGINAL (clean, unformatted) PDF — never the already-stamped one
-    const sourceFileName = paper.originalFileName || paper.fileName;
+    let sourceFileName = paper.originalFileName || paper.fileName;
+    if (!sourceFileName && paper.fileUrl && paper.fileUrl.includes("res.cloudinary.com")) {
+      const match = paper.fileUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+      if (match) sourceFileName = match[1];
+    }
+    
+    if (!sourceFileName) {
+      return res.status(400).json({ error: "Missing Cloudinary public_id (fileName) for formatting." });
+    }
 
     let pdfBuffer;
     try {
@@ -468,8 +476,13 @@ const formatPdf = async (req, res) => {
       const base64Pdf = stampedBuffer.toString('base64');
       return res.json({ base64: base64Pdf });
     } else {
-      // Option B: Overwrite on Cloudinary
-      if (!paper.fileName) {
+      let targetFileName = paper.fileName;
+      if (!targetFileName && paper.fileUrl && paper.fileUrl.includes("res.cloudinary.com")) {
+        const match = paper.fileUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+        if (match) targetFileName = match[1];
+      }
+
+      if (!targetFileName) {
         return res.status(400).json({ error: "Original file name missing. Cannot overwrite." });
       }
 
@@ -477,7 +490,7 @@ const formatPdf = async (req, res) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           resource_type: "raw",
-          public_id: paper.fileName, // Use the existing fileName to overwrite
+          public_id: targetFileName, // Use the existing fileName to overwrite
           overwrite: true,
           invalidate: true,
         },

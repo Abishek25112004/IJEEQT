@@ -1,8 +1,11 @@
 // middleware/errorHandler.js
 // Global error handler — catches any error passed to next(err)
 
+const fs = require('fs');
 const errorHandler = (err, req, res, next) => {
-  console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
+  const logMsg = `[ERROR] ${req.method} ${req.path}: ${err.stack}\n`;
+  console.error(logMsg);
+  fs.appendFileSync('server_error.log', logMsg);
 
   // Validation errors from express-validator
   if (err.type === "validation") {

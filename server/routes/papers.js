@@ -47,8 +47,17 @@ router.post("/:id/format-pdf", verifyToken, requireRole(["admin", "editor"]), as
 async function downloadPdfFromCloudinary(paper) {
   const cloudinary = require("../config/cloudinary");
   const AdmZip = require("adm-zip");
+  
+  let publicId = paper.fileName;
+  if (!publicId && paper.fileUrl && paper.fileUrl.includes("res.cloudinary.com")) {
+    const match = paper.fileUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+    if (match) publicId = match[1];
+  }
+  
+  if (!publicId) throw new Error("Missing Cloudinary public_id (fileName)");
+
   const zipUrl = cloudinary.utils.download_zip_url({
-    public_ids: [paper.fileName],
+    public_ids: [publicId],
     resource_type: "raw",
   });
   const zipRes = await fetch(zipUrl);
