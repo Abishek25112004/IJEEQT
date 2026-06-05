@@ -82,6 +82,7 @@ const submitPaper = async (req, res) => {
       fileUrl,
       fileName,
       status: "submitted",
+      reviewers: [],
     };
 
     const paper = await prisma.paper.create({
