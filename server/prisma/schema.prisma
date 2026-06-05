@@ -30,7 +30,7 @@ model User {
 model Paper {
   id             String    @id @default(uuid())
   title          String
-  abstract       String
+  abstract       String    @db.Text
   keywords       Json
   domain         String?
   
@@ -59,7 +59,7 @@ model Paper {
   issue          Int?
   doi            String?
   year           Int?
-  editorComments String?
+  editorComments String?   @db.Text
   
   reviews        Review[]
   payments       Payment[]
@@ -75,16 +75,16 @@ model Review {
   reviewer        User     @relation(fields: [reviewerId], references: [uid])
   
   // Structured review fields
-  positives       String?   // What's good about the paper
-  negatives       String?   // What needs improvement
-  corrections     String?   // Specific things author must fix before publishing
-  suggestions     String?   // General suggestions for improvement
-  decision        String    // accept | reject | minor_revision | major_revision
-  confidenceLevel String?   // high | medium | low
-  overallComments String?   // Any additional remarks
+  positives       String?   @db.Text
+  negatives       String?   @db.Text
+  corrections     String?   @db.Text
+  suggestions     String?   @db.Text
+  decision        String    
+  confidenceLevel String?   
+  overallComments String?   @db.Text
   
   // Legacy field kept for backward compatibility
-  comments        String?
+  comments        String?   @db.Text
   
   createdAt       DateTime @default(now())
 }
