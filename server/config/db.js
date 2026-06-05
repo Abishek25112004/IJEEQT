@@ -1,4 +1,3 @@
-const mariadb = require('mariadb');
 const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
 const { PrismaClient } = require('@prisma/client');
 
@@ -13,16 +12,15 @@ if (process.env.DATABASE_URL) {
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
       database: parsed.pathname.substring(1),
-      ssl: parsed.searchParams.get('sslaccept') === 'strict' ? { rejectUnauthorized: false } : undefined
+      ssl: parsed.searchParams.get('sslaccept') === 'strict' ? { rejectUnauthorized: false } : undefined,
+      connectionLimit: 5
     };
   } catch (err) {
-    // Fallback if URL parsing fails
-    poolConfig = urlString.replace(/^mysql:/, 'mariadb:');
+    console.error("Failed to parse database URL:", err);
   }
 }
 
-const pool = mariadb.createPool(poolConfig);
-const adapter = new PrismaMariaDb(pool);
+const adapter = new PrismaMariaDb(poolConfig);
 const prisma = new PrismaClient({ adapter });
 
 module.exports = prisma;
