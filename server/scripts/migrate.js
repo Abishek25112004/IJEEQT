@@ -14,7 +14,23 @@ async function runMigration() {
   const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
   
   process.env.DATABASE_URL = tidbUrl;
-  const pool = mariadb.createPool(tidbUrl.replace(/^mysql:/, 'mariadb:'));
+  
+  let poolConfig = undefined;
+  try {
+    const parsed = new URL(tidbUrl.trim());
+    poolConfig = {
+      host: parsed.hostname,
+      port: Number(parsed.port) || 3306,
+      user: decodeURIComponent(parsed.username),
+      password: decodeURIComponent(parsed.password),
+      database: parsed.pathname.substring(1),
+      ssl: parsed.searchParams.get('sslaccept') === 'strict' ? { rejectUnauthorized: true } : undefined
+    };
+  } catch (err) {
+    poolConfig = tidbUrl.trim().replace(/^mysql:/, 'mariadb:');
+  }
+
+  const pool = mariadb.createPool(poolConfig);
   const adapter = new PrismaMariaDb(pool);
   const prisma = new PrismaClient({ adapter });
 
