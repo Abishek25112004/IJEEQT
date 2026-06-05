@@ -140,20 +140,19 @@ const getReviewers = async (req, res) => {
   try {
     const reviewerRoles = ["reviewer", "editor", "admin", "manager"];
 
-    const allUsers = await prisma.user.findMany({
-      where: {
-        roles: {
-          hasSome: reviewerRoles
-        }
-      }
+    const allUsers = await prisma.user.findMany();
+
+    const filteredUsers = allUsers.filter(data => {
+      const userRoles = Array.isArray(data.roles) ? data.roles : [data.roles || "author"];
+      return userRoles.some(r => reviewerRoles.includes(r));
     });
 
-    const reviewers = allUsers.map((data) => ({
+    const reviewers = filteredUsers.map((data) => ({
       uid: data.uid,
       name: data.name,
       email: data.email,
       roles: data.roles,
-      role: data.roles[0] || "author"
+      role: data.roles?.[0] || "author"
     }));
 
     res.json({ reviewers });
