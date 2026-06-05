@@ -9,14 +9,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 model User {
   uid       String    @id
   name      String
   email     String    @unique
-  roles     String[]  // Array of roles (e.g., ["author"], ["admin"])
+  roles     Json      // Array of roles (e.g., ["author"], ["admin"])
   bio       String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -31,7 +31,7 @@ model Paper {
   id             String    @id @default(uuid())
   title          String
   abstract       String
-  keywords       String[]
+  keywords       Json
   domain         String?
   
   authorId       String
@@ -53,7 +53,7 @@ model Paper {
   submittedAt    DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   
-  reviewers      String[]  // Array of reviewer User `uid`s
+  reviewers      Json      // Array of reviewer User `uid`s
   
   volume         Int?
   issue          Int?
