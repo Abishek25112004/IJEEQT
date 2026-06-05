@@ -65,6 +65,39 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Temporary migration route (to be deleted after success)
+app.get("/api/trigger-migration-temp", async (req, res) => {
+  const logs = [];
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+
+  console.log = (...args) => {
+    logs.push("[INFO] " + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(" "));
+    originalLog(...args);
+  };
+  console.warn = (...args) => {
+    logs.push("[WARN] " + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(" "));
+    originalWarn(...args);
+  };
+  console.error = (...args) => {
+    logs.push("[ERROR] " + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(" "));
+    originalError(...args);
+  };
+
+  try {
+    const { runMigration } = require("./scripts/migrate");
+    await runMigration();
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, logs });
+  } finally {
+    console.log = originalLog;
+    console.warn = originalWarn;
+    console.error = originalError;
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });

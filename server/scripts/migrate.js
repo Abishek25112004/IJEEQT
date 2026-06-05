@@ -246,4 +246,8 @@ async function runMigration() {
   }
 }
 
-runMigration();
+if (require.main === module) {
+  runMigration();
+}
+
+module.exports = { runMigration };
