@@ -106,24 +106,24 @@ const Home = () => {
           <div className="bg-blue-800 bg-opacity-50 rounded-xl p-6 border border-blue-600">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-              Call for Papers — Volume {cfp.volume}, Issue {cfp.issue}
+              Call for Papers — Volume {cfp?.volume || "12"}, Issue {cfp?.issue || "2"}
             </h3>
             <ul className="space-y-3 text-sm text-blue-100">
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">📅</span>
-                <span><strong className="text-white">Submission Deadline:</strong> {formatDate(cfp.submissionDeadline)}</span>
+                <span><strong className="text-white">Submission Deadline:</strong> {formatDate(cfp?.submissionDeadline || "March 31, 2025")}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">🔬</span>
-                <span><strong className="text-white">Review Notification:</strong> {cfp.reviewNotification}</span>
+                <span><strong className="text-white">Review Notification:</strong> {cfp?.reviewNotification || "Within 4–6 weeks"}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">📖</span>
-                <span><strong className="text-white">Publication:</strong> {formatDate(cfp.publication)}</span>
+                <span><strong className="text-white">Publication:</strong> {formatDate(cfp?.publication || "June 2025")}</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-yellow-400 shrink-0">💰</span>
-                <span><strong className="text-white">APC:</strong> ₹{(cfp.indianAmount || 5000).toLocaleString()} / ${cfp.internationalAmount || 50} USD</span>
+                <span><strong className="text-white">APC:</strong> ₹{(cfp?.indianAmount || 5000).toLocaleString()} / ${cfp?.internationalAmount || 50} USD</span>
               </li>
             </ul>
             <Link
