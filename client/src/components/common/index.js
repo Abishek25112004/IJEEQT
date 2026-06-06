@@ -8,36 +8,16 @@ import { formatDate, formatDateTime } from "../../utils/dateUtils";
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 async function downloadPaperPdf(paper) {
-  const fileName = paper.title
-    ? paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf'
-    : 'paper.pdf';
-
   try {
     const { auth } = await import("../../services/firebase");
     const user = auth.currentUser;
-    let blob;
 
     if (user) {
       const token = await user.getIdToken();
-      const res = await fetch(`${API_URL}/papers/${paper.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Auth download failed");
-      blob = await res.blob();
+      window.location.href = `${API_URL}/papers/${paper.id}/download?token=${token}`;
     } else {
-      const res = await fetch(`${API_URL}/papers/${paper.id}/download-public`);
-      if (!res.ok) throw new Error("Public download failed");
-      blob = await res.blob();
+      window.location.href = `${API_URL}/papers/${paper.id}/download-public`;
     }
-
-    const blobUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(blobUrl);
   } catch (err) {
     if (paper.fileUrl) {
       window.open(paper.fileUrl, "_blank");

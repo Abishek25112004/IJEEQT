@@ -43,10 +43,13 @@ router.patch("/:id/assign-reviewer", verifyToken, requireRole(["admin", "editor"
 router.post("/:id/format-pdf", verifyToken, requireRole(["admin", "editor"]), asyncHandler(formatPdf));
 
 // ─── PDF Download Proxy (bypasses Cloudinary delivery restrictions) ──────────
-// Helper: Download PDF from Cloudinary using signed ZIP archive
+// Helper: Download PDF from Cloudinary using signed ZIP archive and cache it
 async function downloadPdfFromCloudinary(paper) {
   const cloudinary = require("../config/cloudinary");
   const AdmZip = require("adm-zip");
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
   
   let publicId = paper.fileName;
   if (!publicId && paper.fileUrl && paper.fileUrl.includes("res.cloudinary.com")) {
@@ -55,6 +58,18 @@ async function downloadPdfFromCloudinary(paper) {
   }
   
   if (!publicId) throw new Error("Missing Cloudinary public_id (fileName)");
+
+  // Check local cache first
+  const safeId = publicId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const cachePath = path.join(os.tmpdir(), `ijeeqt_pdf_${safeId}.pdf`);
+  
+  if (fs.existsSync(cachePath)) {
+    try {
+      return fs.readFileSync(cachePath);
+    } catch (err) {
+      console.warn("Failed to read from cache", err);
+    }
+  }
 
   const zipUrl = cloudinary.utils.download_zip_url({
     public_ids: [publicId],
@@ -66,7 +81,17 @@ async function downloadPdfFromCloudinary(paper) {
   const zip = new AdmZip(zipBuffer);
   const pdfEntry = zip.getEntries().find(e => e.entryName.endsWith(".pdf"));
   if (!pdfEntry) throw new Error("PDF not found in archive");
-  return pdfEntry.getData();
+  
+  const pdfBuffer = pdfEntry.getData();
+  
+  // Save to cache
+  try {
+    fs.writeFileSync(cachePath, pdfBuffer);
+  } catch (err) {
+    console.warn("Failed to write to cache", err);
+  }
+  
+  return pdfBuffer;
 }
 
 // Authenticated download — any logged-in user with access to the paper
