@@ -5,7 +5,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { AuthProvider } from "./context/AuthContext";
-import { ProtectedRoute, ScrollToTop } from "./components/common";
+import { ProtectedRoute, ScrollToTop, SmoothScroll } from "./components/common";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import ErrorBoundary from "./components/common/ErrorBoundary";
@@ -41,6 +41,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <SmoothScroll />
       <AuthProvider>
         <ErrorBoundary>
           <Routes>

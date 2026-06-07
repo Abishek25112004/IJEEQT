@@ -4,8 +4,9 @@
 import React from "react";
 import { formatDate, formatDateTime } from "../../utils/dateUtils";
 import ScrollToTop from "./ScrollToTop";
+import SmoothScroll from "./SmoothScroll";
 
-export { ScrollToTop };
+export { ScrollToTop, SmoothScroll };
 
 // ─── PDF download helper (uses backend proxy to bypass Cloudinary CORS) ──────
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
