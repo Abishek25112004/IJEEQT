@@ -189,20 +189,29 @@ const SiteContentManager = () => {
 // ─── Call For Papers Form ──────────────────────────────────────────────────
 const CallForPapersForm = ({ data, onSave, saving }) => {
   const defaultImportantDates = [
-    { event: "Submission Portal Opens", date: "2025-01-01", done: true },
-    { event: "Full Paper Submission Deadline", date: "2025-03-31", done: false },
-    { event: "Review Notification", date: "2025-05-15", done: false },
-    { event: "Revised Manuscript Due", date: "2025-06-01", done: false },
-    { event: "Final Acceptance Notification", date: "2025-06-10", done: false },
-    { event: "Publication Date", date: "2025-06-30", done: false },
+    { event: "Submission Portal Opens", date: "01/01/2025", done: true },
+    { event: "Full Paper Submission Deadline", date: "31/03/2025", done: false },
+    { event: "Review Notification", date: "15/05/2025", done: false },
+    { event: "Revised Manuscript Due", date: "01/06/2025", done: false },
+    { event: "Final Acceptance Notification", date: "10/06/2025", done: false },
+    { event: "Publication Date", date: "30/06/2025", done: false },
   ];
+
+  const formatDateToDDMMYYYY = (dateStr) => {
+    if (!dateStr) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split("-");
+      return `${d}/${m}/${y}`;
+    }
+    return dateStr;
+  };
 
   const [form, setForm] = useState({
     volume: "12",
     issue: "2",
-    submissionDeadline: "2025-03-31",
+    submissionDeadline: "31/03/2025",
     reviewNotification: "Within 4–6 weeks",
-    publication: "2025-06-30",
+    publication: "30/06/2025",
     indianAmount: 5000,
     internationalAmount: 50,
     announcementTitle: "📢 Submissions Now Open",
@@ -221,7 +230,13 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
         return {
           ...prev,
           ...data,
-          importantDates: incomingDates.map(d => ({ ...d, uId: d.uId || generateId() })),
+          submissionDeadline: formatDateToDDMMYYYY(data.submissionDeadline || "2025-03-31"),
+          publication: formatDateToDDMMYYYY(data.publication || "2025-06-30"),
+          importantDates: incomingDates.map(d => ({ 
+            ...d, 
+            date: formatDateToDDMMYYYY(d.date),
+            uId: d.uId || generateId() 
+          })),
         };
       });
     }
@@ -272,9 +287,9 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
         <h4 className="sm:col-span-2 font-bold text-gray-800">Basic Information</h4>
         <div><label className="block text-sm font-medium mb-1">Volume</label><input name="volume" value={form.volume} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Issue</label><input name="issue" value={form.issue} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
-        <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><input type="date" name="submissionDeadline" value={form.submissionDeadline} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
+        <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><input type="text" placeholder="DD/MM/YYYY" name="submissionDeadline" value={form.submissionDeadline} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Review Notification</label><input name="reviewNotification" value={form.reviewNotification} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
-        <div><label className="block text-sm font-medium mb-1">Publication Date</label><input type="date" name="publication" value={form.publication} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
+        <div><label className="block text-sm font-medium mb-1">Publication Date</label><input type="text" placeholder="DD/MM/YYYY" name="publication" value={form.publication} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Indian Amount (₹)</label><input type="number" name="indianAmount" value={form.indianAmount} onChange={(e) => setForm({...form, indianAmount: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">International Amount ($)</label><input type="number" name="internationalAmount" value={form.internationalAmount} onChange={(e) => setForm({...form, internationalAmount: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full border rounded px-3 py-2" /></div>
       </div>
@@ -298,7 +313,7 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
                   </div>
                   <div className="w-full sm:w-1/3">
                     <label className="block text-xs text-gray-500 mb-1">Date</label>
-                    <input type="date" value={d.date} onChange={(e) => updateImportantDate(d.uId, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+                    <input type="text" placeholder="DD/MM/YYYY" value={d.date} onChange={(e) => updateImportantDate(d.uId, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
                   </div>
                   <div className="flex items-center mt-2 sm:mt-5">
                     <label className="flex items-center text-sm mr-4 cursor-pointer">

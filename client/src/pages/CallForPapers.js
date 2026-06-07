@@ -34,7 +34,10 @@ const CallForPapers = () => {
 
   const formatDateCFP = (dateStr) => {
     if (!dateStr) return "—";
-    // If it's already a readable string (e.g. "March 31, 2025"), convert it
+    // If it's already DD/MM/YYYY format, return it directly
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+
+    // If it's already a readable string (e.g. "March 31, 2025") or ISO, convert it
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
