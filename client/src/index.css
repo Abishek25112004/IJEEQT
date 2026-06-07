@@ -6,7 +6,7 @@
 /* ─── Base ──────────────────────────────────────────────── */
 @layer base {
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
   body {
     @apply text-gray-800 bg-gray-50 antialiased;
