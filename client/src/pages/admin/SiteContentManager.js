@@ -188,6 +188,15 @@ const SiteContentManager = () => {
 
 // ─── Call For Papers Form ──────────────────────────────────────────────────
 const CallForPapersForm = ({ data, onSave, saving }) => {
+  const defaultImportantDates = [
+    { event: "Submission Portal Opens", date: "2025-01-01", done: true },
+    { event: "Full Paper Submission Deadline", date: "2025-03-31", done: false },
+    { event: "Review Notification", date: "2025-05-15", done: false },
+    { event: "Revised Manuscript Due", date: "2025-06-01", done: false },
+    { event: "Final Acceptance Notification", date: "2025-06-10", done: false },
+    { event: "Publication Date", date: "2025-06-30", done: false },
+  ];
+
   const [form, setForm] = useState({
     volume: "12",
     issue: "2",
@@ -198,17 +207,23 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
     internationalAmount: 50,
     announcementTitle: "📢 Submissions Now Open",
     announcementText: "IJEEQT invites original research manuscripts for Volume 12, Issue 2.",
-    importantDates: [],
+    importantDates: defaultImportantDates,
     ...data,
   });
 
   useEffect(() => {
     if (data) {
-      setForm(prev => ({
-        ...prev,
-        ...data,
-        importantDates: Array.isArray(data.importantDates) ? data.importantDates.map(d => ({ ...d, uId: d.uId || generateId() })) : (prev.importantDates || []),
-      }));
+      setForm(prev => {
+        const incomingDates = Array.isArray(data.importantDates) && data.importantDates.length > 0 
+          ? data.importantDates 
+          : defaultImportantDates;
+
+        return {
+          ...prev,
+          ...data,
+          importantDates: incomingDates.map(d => ({ ...d, uId: d.uId || generateId() })),
+        };
+      });
     }
   }, [data]);
 

@@ -21,7 +21,7 @@ const CallForPapers = () => {
 
   const title = cfp?.announcementTitle || "📢 Submissions Now Open";
   const text = cfp?.announcementText || "IJEEQT invites original research manuscripts for Volume 12, Issue 2. All accepted papers will be published online immediately upon acceptance.";
-  const importantDates = cfp?.importantDates || [
+  const defaultImportantDates = [
     { event: "Submission Portal Opens", date: "January 1, 2025", done: true },
     { event: "Full Paper Submission Deadline", date: "March 31, 2025", done: false },
     { event: "Review Notification", date: "May 15, 2025", done: false },
@@ -29,6 +29,8 @@ const CallForPapers = () => {
     { event: "Final Acceptance Notification", date: "June 10, 2025", done: false },
     { event: "Publication Date", date: "June 30, 2025", done: false },
   ];
+
+  const importantDates = cfp?.importantDates?.length > 0 ? cfp.importantDates : defaultImportantDates;
 
   const formatDateCFP = (dateStr) => {
     if (!dateStr) return "—";
