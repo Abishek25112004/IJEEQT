@@ -73,8 +73,7 @@ const About = () => (
       <Card className="p-6">
         <h2 className="text-lg font-bold text-blue-800 mb-3">Open Access Policy</h2>
         <p className="text-sm text-gray-700 leading-relaxed text-justify">
-          IJEEQT is a fully open-access journal. All articles are freely available online immediately
-          upon publication under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
+          IJEEQT is a fully open-access journal. All articles are freely available online immediately. 
           Authors retain copyright of their work. The journal is funded through Article Processing Charges (APC).
         </p>
       </Card>

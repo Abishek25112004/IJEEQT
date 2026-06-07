@@ -102,6 +102,12 @@ const Footer = () => {
 
         <div className="mt-10 pt-6 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-500">
           <p>© {new Date().getFullYear()} {abbr}. All rights reserved.</p>
+          <p>
+            Developed by{" "}
+            <a href="https://morpin.in" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors underline">
+              Morpin Technologies
+            </a>
+          </p>
         </div>
       </div>
 

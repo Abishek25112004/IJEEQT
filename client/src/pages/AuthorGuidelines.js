@@ -1,5 +1,6 @@
 // src/pages/AuthorGuidelines.js
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { PageHero, Card } from "../components/common";
 import { contentAPI } from "../services/api";
 
@@ -63,6 +64,15 @@ const AuthorGuidelines = () => {
             <li>• <a href="/templates/conference-latex-template.zip" download="LaTeX_Template.zip" className="underline cursor-pointer">LaTeX Template (.zip)</a></li>
             <li>• When working in Overleaf, the template is available at <a href="https://www.overleaf.com/gallery/tagged/ieee-official" target="_blank" rel="noopener noreferrer" className="underline cursor-pointer text-blue-800 font-medium">IEEE Official Gallery</a></li>
           </ul>
+        </div>
+
+        <div className="text-center mt-8">
+          <Link
+            to="/submit-paper"
+            className="inline-flex items-center gap-2 bg-blue-700 text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-blue-800 transition-colors"
+          >
+            Submit Your Paper →
+          </Link>
         </div>
       </div>
     </div>
