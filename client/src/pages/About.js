@@ -54,8 +54,8 @@ const About = () => (
           <h2 className="text-lg font-bold text-blue-800 mb-3">Journal Metrics</h2>
           <div className="space-y-3 text-sm">
             {[
-              ["Impact Factor", "4.52 (2024)"],
-              ["H-Index", "28"],
+              // ["Impact Factor", "4.52 (2024)"],
+              // ["H-Index", "28"],
               ["Acceptance Rate", "~22%"],
               ["Average Review Time", "4–6 weeks"],
               ["Publication Frequency", "Quarterly"],
