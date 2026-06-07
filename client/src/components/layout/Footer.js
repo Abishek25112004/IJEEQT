@@ -104,7 +104,7 @@ const Footer = () => {
           <p>© {new Date().getFullYear()} {abbr}. All rights reserved.</p>
           <p>
             Developed by{" "}
-            <a href="https://morpin.in" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors underline">
+            <a href="https://morpin.in" target="_blank" rel="noopener noreferrer" className="text-white-400 hover:text-blue-400 transition-colors underline">
               Morpin Technologies
             </a>
           </p>
