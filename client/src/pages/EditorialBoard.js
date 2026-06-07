@@ -93,12 +93,15 @@ const EditorialBoard = () => {
       {loading ? (
         <Spinner center />
       ) : (
-        Object.entries(board || {}).map(([section, members]) => (
-          <div key={section}>
+        (Array.isArray(board)
+          ? board
+          : Object.entries(board || {}).map(([category, members]) => ({ category, members }))
+        ).map(({ category, members }) => (
+          <div key={category}>
             <h2 className="text-lg font-bold text-gray-900 border-l-4 border-blue-700 pl-3 mb-5">
-              {section}
+              {category}
             </h2>
-            <div className={`grid gap-4 ${section === "Editor-in-Chief" ? "grid-cols-1 max-w-md" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
+            <div className={`grid gap-4 ${category === "Editor-in-Chief" ? "grid-cols-1 max-w-md" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
               {Array.isArray(members) && members.map((m, idx) => (
                 <MemberCard key={m?.name || idx} member={m} />
               ))}

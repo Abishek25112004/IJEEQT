@@ -128,8 +128,10 @@ const SiteContentManager = () => {
     try {
       await contentAPI.updateContent(activeSection, cleanedValue);
       setMsg("Content saved successfully");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setErr("Failed to save content: " + error.message);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSaving(false);
     }
@@ -267,7 +269,7 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       setForm((prev) => {
         const oldIndex = prev.importantDates.findIndex((d) => d.uId === active.id);
         const newIndex = prev.importantDates.findIndex((d) => d.uId === over.id);
@@ -371,7 +373,7 @@ const IndexingForm = ({ data, onSave, saving }) => {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       setItems((prev) => {
         const oldIndex = prev.findIndex((i) => i.uId === active.id);
         const newIndex = prev.findIndex((i) => i.uId === over.id);
@@ -417,7 +419,7 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    if (!data || Object.keys(data).length === 0) {
+    if (!data || (Array.isArray(data) && data.length === 0) || Object.keys(data).length === 0) {
       setCategories([
         {
           uId: generateId(),
@@ -426,16 +428,25 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
         }
       ]);
     } else {
-      const arr = Object.keys(data || {}).map(key => {
-        const membersRaw = data[key];
-        const membersArray = Array.isArray(membersRaw) ? membersRaw : [];
-        return {
+      if (Array.isArray(data)) {
+        const arr = data.map(item => ({
           uId: generateId(),
-          category: key,
-          members: membersArray.map(m => (typeof m === 'object' && m !== null ? { ...m, uId: generateId() } : { uId: generateId(), name: String(m) }))
-        };
-      });
-      setCategories(arr);
+          category: item.category || "Unnamed",
+          members: Array.isArray(item.members) ? item.members.map(m => ({ ...m, uId: generateId() })) : []
+        }));
+        setCategories(arr);
+      } else {
+        const arr = Object.keys(data || {}).map(key => {
+          const membersRaw = data[key];
+          const membersArray = Array.isArray(membersRaw) ? membersRaw : [];
+          return {
+            uId: generateId(),
+            category: key,
+            members: membersArray.map(m => (typeof m === 'object' && m !== null ? { ...m, uId: generateId() } : { uId: generateId(), name: String(m) }))
+          };
+        });
+        setCategories(arr);
+      }
     }
   }, [data]);
 
@@ -443,7 +454,7 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
 
   const handleDragCategory = (event) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       setCategories((prev) => {
         const oldIndex = prev.findIndex((c) => c.uId === active.id);
         const newIndex = prev.findIndex((c) => c.uId === over.id);
@@ -454,7 +465,7 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
 
   const handleDragMember = (catId, event) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       setCategories((prev) => prev.map(cat => {
         if (cat.uId !== catId) return cat;
         const oldIndex = cat.members.findIndex(m => m.uId === active.id);
@@ -465,8 +476,9 @@ const EditorialBoardForm = ({ data, onSave, saving }) => {
   };
 
   const handleSave = () => {
-    const output = {};
-    categories.forEach(c => { if (c.category.trim()) output[c.category.trim()] = c.members; });
+    const output = categories
+      .filter(c => c.category.trim())
+      .map(c => ({ category: c.category.trim(), members: c.members }));
     onSave(output);
   };
 
