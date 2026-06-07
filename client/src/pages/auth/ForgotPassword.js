@@ -117,7 +117,25 @@ const ForgotPassword = () => {
     }
   };
 
-  // ── Step 2: Reset Password ────────────────────────────────────────────
+  // ── Step 2: Verify OTP ───────────────────────────────────────────────
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (otp.length !== 6) { setError("Please enter the 6-digit OTP."); return; }
+
+    setLoading(true);
+    try {
+      await authAPI.verifyOtp(email, otp, false);
+      setStep(3);
+      setSuccess("OTP verified. Please enter your new password.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Step 3: Reset Password ────────────────────────────────────────────
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError("");
@@ -162,17 +180,17 @@ const ForgotPassword = () => {
             </div>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>
-          <p className="text-gray-500 text-sm mt-1">{step === 1 ? "Enter your email to receive an OTP" : "Set your new password"}</p>
+          <p className="text-gray-500 text-sm mt-1">{step === 1 ? "Enter your email to receive an OTP" : step === 2 ? "Verify your email address" : "Set your new password"}</p>
         </div>
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 mb-6">
-          {[1, 2].map((s) => (
+          {[1, 2, 3].map((s) => (
             <React.Fragment key={s}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${step >= s ? "bg-blue-700 text-white" : "bg-gray-200 text-gray-500"}`}>
                 {step > s ? "✓" : s}
               </div>
-              {s < 2 && <div className={`h-0.5 w-12 transition-all ${step > 1 ? "bg-blue-700" : "bg-gray-200"}`} />}
+              {s < 3 && <div className={`h-0.5 w-12 transition-all ${step > s ? "bg-blue-700" : "bg-gray-200"}`} />}
             </React.Fragment>
           ))}
         </div>
@@ -200,9 +218,9 @@ const ForgotPassword = () => {
           </form>
         )}
 
-        {/* ── STEP 2 ── */}
+        {/* ── STEP 2: Verify OTP ── */}
         {step === 2 && (
-          <form onSubmit={handleResetPassword} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mt-4 space-y-4">
+          <form onSubmit={handleVerifyOtp} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mt-4 space-y-4">
             <div className="text-center mb-6">
               <p className="text-sm text-gray-600">Enter the OTP sent to</p>
               <p className="font-semibold text-gray-900 mt-0.5">{email}</p>
@@ -213,6 +231,29 @@ const ForgotPassword = () => {
               <OtpInput value={otp} onChange={setOtp} />
             </div>
 
+            <button type="submit" disabled={loading || otp.length !== 6}
+              className="w-full bg-blue-700 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2 mb-4 mt-4">
+              {loading ? <><Spinner size="sm" /> Verifying...</> : "Verify OTP"}
+            </button>
+
+            <div className="text-center text-sm">
+              <span className="text-gray-500">Didn't receive it? </span>
+              {resendTimer > 0 ? (
+                <span className="text-gray-400">Resend in {resendTimer}s</span>
+              ) : (
+                <button type="button" onClick={handleResend} className="text-blue-600 font-medium hover:underline">Resend OTP</button>
+              )}
+            </div>
+            <button type="button" onClick={() => { setStep(1); setOtp(""); setError(""); setSuccess(""); }}
+              className="block w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-3 hover:underline">
+              ← Change email
+            </button>
+          </form>
+        )}
+
+        {/* ── STEP 3: Reset Password ── */}
+        {step === 3 && (
+          <form onSubmit={handleResetPassword} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mt-4 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">New Password <span className="text-red-500">*</span></label>
               <div className="relative">
@@ -239,22 +280,9 @@ const ForgotPassword = () => {
               )}
             </div>
 
-            <button type="submit" disabled={loading || otp.length !== 6 || !passwordValid || newPassword !== confirmPassword}
+            <button type="submit" disabled={loading || !passwordValid || newPassword !== confirmPassword}
               className="w-full bg-blue-700 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2 mb-4 mt-4">
               {loading ? <><Spinner size="sm" /> Resetting...</> : "Reset Password"}
-            </button>
-
-            <div className="text-center text-sm">
-              <span className="text-gray-500">Didn't receive it? </span>
-              {resendTimer > 0 ? (
-                <span className="text-gray-400">Resend in {resendTimer}s</span>
-              ) : (
-                <button type="button" onClick={handleResend} className="text-blue-600 font-medium hover:underline">Resend OTP</button>
-              )}
-            </div>
-            <button type="button" onClick={() => { setStep(1); setOtp(""); setError(""); setSuccess(""); }}
-              className="block w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-3 hover:underline">
-              ← Change email
             </button>
           </form>
         )}

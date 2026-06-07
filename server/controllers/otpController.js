@@ -104,7 +104,7 @@ const sendOtp = async (req, res) => {
  * Internal helper to validate and consume OTP
  * Returns { valid: boolean, error?: string }
  */
-const validateAndConsumeOtp = (email, otp) => {
+const validateAndConsumeOtp = (email, otp, consume = true) => {
   if (!email || !otp) return { valid: false, error: "Email and OTP are required" };
   
   const stored = otpStore.get(email.toLowerCase());
@@ -129,7 +129,9 @@ const validateAndConsumeOtp = (email, otp) => {
     };
   }
   
-  otpStore.delete(email.toLowerCase());
+  if (consume) {
+    otpStore.delete(email.toLowerCase());
+  }
   return { valid: true };
 };
 
@@ -138,9 +140,9 @@ const validateAndConsumeOtp = (email, otp) => {
  * Verifies the OTP for the given email
  */
 const verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otp, consume = true } = req.body;
   
-  const result = validateAndConsumeOtp(email, otp);
+  const result = validateAndConsumeOtp(email, otp, consume);
   if (!result.valid) {
     const isRateLimit = result.error.includes("Too many");
     return res.status(isRateLimit ? 429 : 400).json({ error: result.error });

@@ -49,7 +49,7 @@ export const authAPI = {
   getProfile: () => api.get("/auth/profile"),
   updateProfile: (data) => api.put("/auth/profile", data),
   sendOtp: (email) => api.post("/auth/send-otp", { email }),
-  verifyOtp: (email, otp) => api.post("/auth/verify-otp", { email, otp }),
+  verifyOtp: (email, otp, consume = true) => api.post("/auth/verify-otp", { email, otp, consume }),
   resetPassword: (email, otp, newPassword) => api.post("/auth/reset-password", { email, otp, newPassword }),
 };
 
