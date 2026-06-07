@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { contentAPI } from "../../services/api";
 import { Card, Spinner, Alert } from "../../components/common";
 import { COUNTRIES } from "../../constants/countries";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import {
   DndContext,
   closestCenter,
@@ -243,6 +245,21 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
     }
   }, [data]);
 
+  const parseDate = (dStr) => {
+    if (!dStr) return null;
+    const [y, m, d] = dStr.split("-");
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  };
+
+  const formatDate = (dateObj) => {
+    if (!dateObj) return "";
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -288,9 +305,9 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
         <h4 className="sm:col-span-2 font-bold text-gray-800">Basic Information</h4>
         <div><label className="block text-sm font-medium mb-1">Volume</label><input name="volume" value={form.volume} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Issue</label><input name="issue" value={form.issue} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
-        <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><input type="date" name="submissionDeadline" value={form.submissionDeadline} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
+        <div><label className="block text-sm font-medium mb-1">Submission Deadline</label><DatePicker selected={parseDate(form.submissionDeadline)} onChange={(date) => setForm({ ...form, submissionDeadline: formatDate(date) })} dateFormat="dd/MM/yyyy" className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Review Notification</label><input name="reviewNotification" value={form.reviewNotification} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
-        <div><label className="block text-sm font-medium mb-1">Publication Date</label><input type="date" name="publication" value={form.publication} onChange={handleChange} className="w-full border rounded px-3 py-2" /></div>
+        <div><label className="block text-sm font-medium mb-1">Publication Date</label><DatePicker selected={parseDate(form.publication)} onChange={(date) => setForm({ ...form, publication: formatDate(date) })} dateFormat="dd/MM/yyyy" className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">Indian Amount (₹)</label><input type="number" name="indianAmount" value={form.indianAmount} onChange={(e) => setForm({...form, indianAmount: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full border rounded px-3 py-2" /></div>
         <div><label className="block text-sm font-medium mb-1">International Amount ($)</label><input type="number" name="internationalAmount" value={form.internationalAmount} onChange={(e) => setForm({...form, internationalAmount: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full border rounded px-3 py-2" /></div>
       </div>
@@ -314,7 +331,7 @@ const CallForPapersForm = ({ data, onSave, saving }) => {
                   </div>
                   <div className="w-full sm:w-1/3">
                     <label className="block text-xs text-gray-500 mb-1">Date</label>
-                    <input type="date" value={d.date} onChange={(e) => updateImportantDate(d.uId, "date", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+                    <DatePicker selected={parseDate(d.date)} onChange={(date) => updateImportantDate(d.uId, "date", formatDate(date))} dateFormat="dd/MM/yyyy" className="w-full border rounded px-3 py-2 text-sm" />
                   </div>
                   <div className="flex items-center mt-2 sm:mt-5">
                     <label className="flex items-center text-sm mr-4 cursor-pointer">
