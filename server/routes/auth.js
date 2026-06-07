@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
-const { register, getProfile, updateProfile } = require("../controllers/authController");
+const { register, getProfile, updateProfile, resetPassword } = require("../controllers/authController");
 const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { verifyToken } = require("../middleware/auth");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -35,6 +35,7 @@ const registerValidation = [
 // ─── OTP Routes (public) ─────────────────────────────────────────────────────
 router.post("/send-otp", asyncHandler(sendOtp));
 router.post("/verify-otp", asyncHandler(verifyOtp));
+router.post("/reset-password", asyncHandler(resetPassword));
 
 // ─── Auth Routes ─────────────────────────────────────────────────────────────
 router.post("/register", registerValidation, asyncHandler(register));

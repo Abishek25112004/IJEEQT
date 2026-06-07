@@ -101,53 +101,52 @@ const sendOtp = async (req, res) => {
 };
 
 /**
+ * Internal helper to validate and consume OTP
+ * Returns { valid: boolean, error?: string }
+ */
+const validateAndConsumeOtp = (email, otp) => {
+  if (!email || !otp) return { valid: false, error: "Email and OTP are required" };
+  
+  const stored = otpStore.get(email.toLowerCase());
+  if (!stored) return { valid: false, error: "No OTP found for this email. Please request a new one." };
+  
+  if (Date.now() > stored.expiresAt) {
+    otpStore.delete(email.toLowerCase());
+    return { valid: false, error: "OTP has expired. Please request a new one." };
+  }
+  
+  if (stored.attempts >= MAX_ATTEMPTS) {
+    otpStore.delete(email.toLowerCase());
+    return { valid: false, error: "Too many failed attempts. Please request a new OTP." };
+  }
+  
+  if (stored.otp !== otp.toString().trim()) {
+    otpStore.set(email.toLowerCase(), { ...stored, attempts: stored.attempts + 1 });
+    const remaining = MAX_ATTEMPTS - stored.attempts - 1;
+    return {
+      valid: false,
+      error: remaining > 0 ? `Invalid OTP. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.` : "Too many failed attempts. Please request a new OTP."
+    };
+  }
+  
+  otpStore.delete(email.toLowerCase());
+  return { valid: true };
+};
+
+/**
  * POST /api/auth/verify-otp
  * Verifies the OTP for the given email
  */
 const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
-
-  if (!email || !otp) {
-    return res.status(400).json({ error: "Email and OTP are required" });
+  
+  const result = validateAndConsumeOtp(email, otp);
+  if (!result.valid) {
+    const isRateLimit = result.error.includes("Too many");
+    return res.status(isRateLimit ? 429 : 400).json({ error: result.error });
   }
 
-  const stored = otpStore.get(email.toLowerCase());
-
-  if (!stored) {
-    return res
-      .status(400)
-      .json({ error: "No OTP found for this email. Please request a new one." });
-  }
-
-  if (Date.now() > stored.expiresAt) {
-    otpStore.delete(email.toLowerCase());
-    return res
-      .status(400)
-      .json({ error: "OTP has expired. Please request a new one." });
-  }
-
-  // Brute-force protection
-  if (stored.attempts >= MAX_ATTEMPTS) {
-    otpStore.delete(email.toLowerCase());
-    return res
-      .status(429)
-      .json({ error: "Too many failed attempts. Please request a new OTP." });
-  }
-
-  if (stored.otp !== otp.toString().trim()) {
-    // Increment attempt counter
-    otpStore.set(email.toLowerCase(), { ...stored, attempts: stored.attempts + 1 });
-    const remaining = MAX_ATTEMPTS - stored.attempts - 1;
-    return res.status(400).json({
-      error: remaining > 0
-        ? `Invalid OTP. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
-        : "Too many failed attempts. Please request a new OTP.",
-    });
-  }
-
-  // ✅ OTP verified — remove from store
-  otpStore.delete(email.toLowerCase());
   return res.json({ message: "OTP verified successfully", verified: true });
 };
 
-module.exports = { sendOtp, verifyOtp };
+module.exports = { sendOtp, verifyOtp, validateAndConsumeOtp };

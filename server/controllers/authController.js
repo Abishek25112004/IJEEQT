@@ -4,6 +4,7 @@
 const { auth } = require("../config/firebase");
 const { validationResult } = require("express-validator");
 const prisma = require("../config/db");
+const { validateAndConsumeOtp } = require("./otpController");
 
 /**
  * POST /api/auth/register
@@ -101,4 +102,39 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { register, getProfile, updateProfile };
+/**
+ * POST /api/auth/reset-password
+ * Resets a user's password using an OTP
+ */
+const resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ error: "Email, OTP, and new password are required" });
+  }
+
+  // Verify and consume OTP
+  const result = validateAndConsumeOtp(email, otp);
+  if (!result.valid) {
+    const isRateLimit = result.error.includes("Too many");
+    return res.status(isRateLimit ? 429 : 400).json({ error: result.error });
+  }
+
+  try {
+    // Get user by email to get their UID
+    const userRecord = await auth.getUserByEmail(email);
+    
+    // Update password
+    await auth.updateUser(userRecord.uid, { password: newPassword });
+
+    res.json({ message: "Password has been successfully reset" });
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      return res.status(404).json({ error: "No account found with this email" });
+    }
+    console.error("Password reset error:", error);
+    res.status(500).json({ error: "Internal server error during password reset" });
+  }
+};
+
+module.exports = { register, getProfile, updateProfile, resetPassword };
