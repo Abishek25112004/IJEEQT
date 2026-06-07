@@ -37,7 +37,6 @@ const Footer = () => {
             <div className="text-xs text-gray-500 space-y-1">
               <p>ISSN (Online): 2XXX-XXXX</p>
               <p>Frequency: Quarterly</p>
-              <p>Publisher: Academic Research Press</p>
             </div>
           </div>
 
@@ -103,12 +102,6 @@ const Footer = () => {
 
         <div className="mt-10 pt-6 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-500">
           <p>© {new Date().getFullYear()} {abbr}. All rights reserved.</p>
-          <p>
-            Published under{" "}
-            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
-              Creative Commons Attribution 4.0 International License
-            </a>
-          </p>
         </div>
       </div>
 
