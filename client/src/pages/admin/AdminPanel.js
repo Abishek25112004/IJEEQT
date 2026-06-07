@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { adminAPI, papersAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { formatDate } from "../../utils/dateUtils";
@@ -272,6 +272,7 @@ const FormatAndPublishModal = ({ paperId, paperTitle, totalPublishedCount, onPub
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
 const AdminPanel = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const [stats, setStats] = useState(null);
   const [papers, setPapers] = useState([]);
@@ -414,6 +415,9 @@ const AdminPanel = () => {
     <div>
       <PageHero title="Admin Panel" subtitle="Manage papers, users, and editorial workflow." breadcrumb="Home / Admin" />
       <div className="max-w-7xl mx-auto px-4 py-8">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 mb-6 transition-colors">
+          ← Back
+        </button>
 
         {msg && <Alert type="success" message={msg} onClose={() => setMsg("")} />}
         {err && <Alert type="error" message={err} onClose={() => setErr("")} />}

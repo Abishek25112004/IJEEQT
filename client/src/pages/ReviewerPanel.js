@@ -1,6 +1,7 @@
 // src/pages/ReviewerPanel.js
 // Full reviewer workflow: Profile onboarding → Paper assignments → Review submission
 import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { reviewerAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { formatDate } from "../utils/dateUtils";
@@ -354,6 +355,7 @@ const SearchBar = ({ value, onChange, placeholder }) => (
 // ─── Main Reviewer Panel ──────────────────────────────────────────────────────
 const ReviewerPanel = () => {
   const { profile: authProfile } = useAuth();
+  const navigate = useNavigate();
   const [reviewerProfile, setReviewerProfile] = useState(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [assignments, setAssignments] = useState([]);
@@ -483,6 +485,9 @@ const ReviewerPanel = () => {
         breadcrumb="Home / Reviewer"
       />
       <div className="max-w-6xl mx-auto px-4 py-10">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 mb-6 transition-colors">
+          ← Back
+        </button>
         {msg && <Alert type="success" message={msg} onClose={() => setMsg("")} />}
         {err && <Alert type="error" message={err} onClose={() => setErr("")} />}
 

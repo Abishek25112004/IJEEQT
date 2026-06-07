@@ -59,8 +59,8 @@ const Home = () => {
   const stats = [
     { value: statsData.publishedCount.toString(), label: "Published Articles" },
     { value: statsData.editorialCount.toString(), label: "Editorial Board" },
-    { value: "4.52", label: "Impact Factor" },
-    { value: "120+", label: "Countries Reached" },
+    // { value: "4.52", label: "Impact Factor" },
+    { value: "5+", label: "Countries Reached" },
   ];
 
   const subjects = [
