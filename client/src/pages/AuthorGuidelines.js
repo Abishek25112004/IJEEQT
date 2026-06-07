@@ -59,8 +59,8 @@ const AuthorGuidelines = () => {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 text-sm">
           <p className="font-semibold text-blue-800 mb-1">📥 Download Templates</p>
           <ul className="text-blue-700 space-y-1 mt-2">
-            <li>• <a href="/templates/ieee-template.docx" download className="underline cursor-pointer">IEEE Manuscript Template (.docx)</a></li>
-            <li>• <a href="/templates/latex-template.zip" download className="underline cursor-pointer">LaTeX Template (.zip)</a></li>
+            <li>• <a href="/templates/conference-template-a4.docx" download="IEEE_Manuscript_Template.docx" className="underline cursor-pointer">IEEE Manuscript Template (.docx)</a></li>
+            <li>• <a href="/templates/conference-latex-template.zip" download="LaTeX_Template.zip" className="underline cursor-pointer">LaTeX Template (.zip)</a></li>
             <li>• When working in Overleaf, the template is available at <a href="https://www.overleaf.com/gallery/tagged/ieee-official" target="_blank" rel="noopener noreferrer" className="underline cursor-pointer text-blue-800 font-medium">IEEE Official Gallery</a></li>
           </ul>
         </div>
