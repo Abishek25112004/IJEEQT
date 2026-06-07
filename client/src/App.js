@@ -5,7 +5,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { AuthProvider } from "./context/AuthContext";
-import { ProtectedRoute } from "./components/common";
+import { ProtectedRoute, ScrollToTop } from "./components/common";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import ErrorBoundary from "./components/common/ErrorBoundary";
@@ -40,6 +40,7 @@ const Layout = ({ children }) => (
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <ErrorBoundary>
           <Routes>
