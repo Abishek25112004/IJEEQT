@@ -10,24 +10,24 @@ import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 
-// Pages
-import Home from "./pages/Home";
-import About from "./pages/About";
-import EditorialBoard from "./pages/EditorialBoard";
-import AuthorGuidelines from "./pages/AuthorGuidelines";
-import CallForPapers from "./pages/CallForPapers";
-import SubmitPaper from "./pages/SubmitPaper";
-import Archives from "./pages/Archives";
-import Contact from "./pages/Contact";
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import AdminPanel from "./pages/admin/AdminPanel";
-import SiteContentPage from "./pages/admin/SiteContentPage";
-import HeaderFooterLayoutEditor from "./pages/admin/HeaderFooterLayoutEditor";
-import ReviewerPanel from "./pages/ReviewerPanel";
-import EditorPanel from "./pages/editor/EditorPanel";
+// Pages (Lazy Loaded)
+const Home = React.lazy(() => import("./pages/Home"));
+const About = React.lazy(() => import("./pages/About"));
+const EditorialBoard = React.lazy(() => import("./pages/EditorialBoard"));
+const AuthorGuidelines = React.lazy(() => import("./pages/AuthorGuidelines"));
+const CallForPapers = React.lazy(() => import("./pages/CallForPapers"));
+const SubmitPaper = React.lazy(() => import("./pages/SubmitPaper"));
+const Archives = React.lazy(() => import("./pages/Archives"));
+const Contact = React.lazy(() => import("./pages/Contact"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Login = React.lazy(() => import("./pages/auth/Login"));
+const Register = React.lazy(() => import("./pages/auth/Register"));
+const ForgotPassword = React.lazy(() => import("./pages/auth/ForgotPassword"));
+const AdminPanel = React.lazy(() => import("./pages/admin/AdminPanel"));
+const SiteContentPage = React.lazy(() => import("./pages/admin/SiteContentPage"));
+const HeaderFooterLayoutEditor = React.lazy(() => import("./pages/admin/HeaderFooterLayoutEditor"));
+const ReviewerPanel = React.lazy(() => import("./pages/ReviewerPanel"));
+const EditorPanel = React.lazy(() => import("./pages/editor/EditorPanel"));
 
 // Layout wrapper for pages with Navbar + Footer
 const Layout = ({ children }) => (
@@ -45,6 +45,7 @@ function App() {
       <SmoothScroll />
       <AuthProvider>
         <ErrorBoundary>
+          <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>}>
           <Routes>
           {/* Auth pages — no Navbar */}
           <Route path="/login" element={<Login />} />
@@ -157,6 +158,7 @@ function App() {
             }
           />
         </Routes>
+          </React.Suspense>
         </ErrorBoundary>
 
         <ToastContainer position="top-right" autoClose={4000} hideProgressBar={false} />

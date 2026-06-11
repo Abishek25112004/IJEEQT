@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
+const fileType = require("file-type");
 const {
   submitPaper,
   getAllPapers,
@@ -28,11 +29,25 @@ const upload = multer({
   },
 });
 
+// Secure file validation middleware
+const validatePdfType = async (req, res, next) => {
+  if (!req.file) return next();
+  try {
+    const type = await fileType.fromBuffer(req.file.buffer);
+    if (!type || type.mime !== "application/pdf") {
+      return res.status(400).json({ error: "Invalid file type. Only genuine PDFs are allowed." });
+    }
+    next();
+  } catch (err) {
+    return res.status(500).json({ error: "File validation failed." });
+  }
+};
+
 // Public routes
 router.get("/published", asyncHandler(getPublishedPapers));
 
 // Protected routes (require login)
-router.post("/submit", verifyToken, upload.single("pdf"), asyncHandler(submitPaper));
+router.post("/submit", verifyToken, upload.single("pdf"), validatePdfType, asyncHandler(submitPaper));
 router.get("/", verifyToken, asyncHandler(getAllPapers));
 router.get("/:id", verifyToken, asyncHandler(getPaperById));
 router.delete("/:id", verifyToken, asyncHandler(deletePaper));

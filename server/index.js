@@ -3,6 +3,9 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const compression = require("compression");
+const rateLimit = require("express-rate-limit");
 const { errorHandler } = require("./middleware/errorHandler");
 
 // Initialize Firebase (must be done before importing routes)
@@ -13,17 +16,33 @@ const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
 
+app.use(helmet());
+app.use(compression());
+
+// Global rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 200, // Limit each IP to 200 requests per `window`
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: "Too many requests from this IP, please try again after 15 minutes" },
+});
+app.use("/api", limiter);
+
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Automatically accept any variation of ijeeqt.org (with or without www), vercel domains, and localhost
-    if (
-      origin.includes("ijeeqt.org") || 
-      origin.includes("vercel.app") || 
-      origin.startsWith("http://localhost:")
-    ) {
+    // Automatically accept exact domains
+    const allowedPatterns = [
+      /^https?:\/\/(www\.)?ijeeqt\.org$/,
+      /^https?:\/\/.*\.vercel\.app$/,
+      /^http:\/\/localhost:\d+$/
+    ];
+
+    const isAllowed = allowedPatterns.some((pattern) => pattern.test(origin));
+    if (isAllowed) {
       return callback(null, true);
     }
 
