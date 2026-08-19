@@ -96,6 +96,27 @@ const About = () => (
           value of all published research.
         </p>
       </Card>
+
+      <Card className="p-6">
+        <h2 className="text-lg font-bold text-blue-800 mb-3">Publisher's details</h2>
+        <div className="space-y-3 text-sm">
+          {[
+            ["Owner Name/ Responsible Person Name", "Abishek M"],
+            ["Name of Issuing/ Publishing body", "Abishek M"],
+            ["E-mail", "abishek25112004@gmail.com"],
+            ["Mobile", "8072287692"],
+            ["Address line 1", "3/686-10 Kalliyappa chetty colony"],
+            ["Town / City", "Dharmapuri"],
+            ["Pin Code", "636701"],
+            ["State", "Tamilnadu, India."],
+          ].map(([k, v]) => (
+            <div key={k} className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-100 pb-2 last:border-0 gap-1 sm:gap-4">
+              <span className="text-gray-500 font-medium">{k}</span>
+              <span className="font-semibold text-gray-800 sm:text-right">{v}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   </div>
 );
