@@ -51,19 +51,18 @@ const About = () => (
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-blue-800 mb-3">Journal Metrics</h2>
+          <h2 className="text-lg font-bold text-blue-800 mb-3">Journal Details</h2>
           <div className="space-y-3 text-sm">
             {[
-              // ["Impact Factor", "4.52 (2024)"],
-              // ["H-Index", "28"],
-              ["Acceptance Rate", "~22%"],
-              ["Average Review Time", "4–6 weeks"],
+              ["Starting Year", "2026"],
               ["Publication Frequency", "Quarterly"],
-              ["Founded", "2026"],
+              ["Publication Format", "Online"],
+              ["Language", "English"],
+              ["Subject", "Engineering and Technology"],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-gray-100 pb-2 last:border-0">
                 <span className="text-gray-500">{k}</span>
-                <span className="font-semibold text-gray-800">{v}</span>
+                <span className="font-semibold text-gray-800 text-right">{v}</span>
               </div>
             ))}
           </div>
