@@ -17,12 +17,12 @@ const About = () => (
           peer-reviewed, open-access scholarly journal committed to advancing the frontiers of engineering and
           applied sciences. The journal publishes high-quality original research articles, comprehensive review
           papers, and concise technical communications that contribute novel insights and practical advancements
-          across diverse interdisciplinary domains. IJEEQT actively welcomes submissions from researchers,
+          across diverse interdisciplinary domains. International Journal of Engineering Excellence in Quantum Technology actively welcomes submissions from researchers,
           academicians, and industry professionals worldwide, fostering a global platform for the exchange of
           innovative ideas and cutting-edge developments.
         </p>
         <p className="text-gray-700 text-sm leading-relaxed mt-3 text-justify">
-          IJEEQT upholds a robust, transparent, and efficient peer-review process designed to ensure the highest
+          International Journal of Engineering Excellence in Quantum Technology upholds a robust, transparent, and efficient peer-review process designed to ensure the highest
           standards of scientific rigor, ethical integrity, and academic excellence. Each submission undergoes
           thorough evaluation by qualified experts to assess its originality, technical soundness, and relevance
           to the field. By maintaining a commitment to timely publication without compromising quality, the
@@ -73,7 +73,7 @@ const About = () => (
       <Card className="p-6">
         <h2 className="text-lg font-bold text-blue-800 mb-3">Open Access Policy</h2>
         <p className="text-sm text-gray-700 leading-relaxed text-justify">
-          IJEEQT is a fully open-access journal. All articles are freely available online immediately. 
+          International Journal of Engineering Excellence in Quantum Technology is a fully open-access journal. All articles are freely available online immediately. 
           Authors retain copyright of their work. The journal is funded through Article Processing Charges (APC).
         </p>
       </Card>
@@ -81,7 +81,7 @@ const About = () => (
       <Card className="p-6">
         <h2 className="text-lg font-bold text-blue-800 mb-3">Publication Ethics</h2>
         <p className="text-sm text-gray-700 leading-relaxed text-justify">
-          IJEEQT adheres to the ethical guidelines established by the Committee on Publication Ethics (COPE)
+          International Journal of Engineering Excellence in Quantum Technology adheres to the ethical guidelines established by the Committee on Publication Ethics (COPE)
           and is committed to maintaining the highest standards of integrity in scholarly publishing. The
           journal enforces strict policies against plagiarism, data fabrication, falsification, and improper
           authorship practices.
@@ -93,7 +93,7 @@ const About = () => (
           decision-making throughout the publication process.
         </p>
         <p className="text-sm text-gray-700 leading-relaxed mt-3 text-justify">
-          By upholding these ethical principles, IJEEQT ensures the credibility, reliability, and academic
+          By upholding these ethical principles, International Journal of Engineering Excellence in Quantum Technology ensures the credibility, reliability, and academic
           value of all published research.
         </p>
       </Card>
