@@ -58,7 +58,7 @@ const About = () => (
               ["Publication Frequency", "Quarterly"],
               ["Publication Format", "Online"],
               ["Language", "English"],
-              ["Subject", "Engineering and Technology"],
+              ["Subject","Computer Science"],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-gray-100 pb-2 last:border-0">
                 <span className="text-gray-500">{k}</span>
